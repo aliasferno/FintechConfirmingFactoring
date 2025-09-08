@@ -1,0 +1,10 @@
+{
+  "user_id": 1,
+  "business_name": "Empresa de Prueba",
+  "tax_id": "RFC123456789",
+  "business_type": "Tecnología",
+  "address": "Calle Falsa 123",
+  "phone": "123456789",
+  "monthly_revenue": 50000,
+  "years_in_business": 5
+}
