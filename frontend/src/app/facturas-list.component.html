@@ -1,0 +1,191 @@
+<div class="facturas-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-content">
+      <h1>Gestión de Facturas</h1>
+      <button class="btn btn-primary" (click)="navigateToNuevaFactura()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+        Nueva Factura
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Estado:</label>
+      <select [(ngModel)]="selectedStatus" (change)="onFilterChange()" class="filter-select">
+        <option value="all">Todas</option>
+        <option value="pending">Pendientes</option>
+        <option value="approved">Aprobadas</option>
+        <option value="funded">Financiadas</option>
+        <option value="rejected">Rechazadas</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label>Tipo de Operación:</label>
+      <select [(ngModel)]="selectedOperationType" (change)="onFilterChange()" class="filter-select">
+        <option value="all">Todos</option>
+        <option value="factoring">Factoring</option>
+        <option value="confirming">Confirming</option>
+      </select>
+    </div>
+
+    <button class="btn btn-secondary" (click)="clearFilters()">
+      Limpiar Filtros
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Cargando facturas...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-container">
+      <div class="error-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+      </div>
+      <h3>Error al cargar las facturas</h3>
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" (click)="loadInvoices()">
+        Reintentar
+      </button>
+    </div>
+  }
+
+  <!-- Content -->
+  @if (!isLoading() && !error()) {
+    <!-- Stats Summary -->
+    <div class="stats-summary">
+      <div class="stat-item">
+        <span class="stat-label">Total de Facturas:</span>
+        <span class="stat-value">{{ invoices().length }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Monto Total:</span>
+        <span class="stat-value">{{ getTotalAmount() | currency:'USD':'symbol':'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    @if (invoices().length === 0) {
+      <div class="empty-container">
+        <div class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+          </svg>
+        </div>
+        <h3>No hay facturas</h3>
+        <p>No se encontraron facturas con los filtros seleccionados.</p>
+        <button class="btn btn-primary" (click)="navigateToNuevaFactura()">
+          Crear Primera Factura
+        </button>
+      </div>
+    }
+
+    <!-- Invoices Grid -->
+    @if (invoices().length > 0) {
+      <div class="invoices-grid">
+        @for (invoice of invoices(); track invoice.id) {
+          <div class="invoice-card" [class]="'status-' + invoice.verification_status">
+            <div class="invoice-header">
+              <div class="invoice-number">
+                <strong>{{ invoice.invoice_number }}</strong>
+              </div>
+              <div class="invoice-status">
+                <span class="status-badge" [class]="'status-' + invoice.verification_status">
+                  {{ getStatusLabel(invoice.verification_status) }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="invoice-details">
+              <div class="detail-row">
+                <span class="label">Cliente:</span>
+                <span class="value">{{ invoice.client_name }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Monto:</span>
+                <span class="value amount">{{ invoice.amount | currency:'USD':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Fecha de Emisión:</span>
+                <span class="value">{{ invoice.issue_date | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Fecha de Vencimiento:</span>
+                <span class="value">{{ invoice.due_date | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Tipo:</span>
+                <span class="value operation-type">{{ getOperationTypeLabel(invoice.operation_type) }}</span>
+              </div>
+            </div>
+            
+            <div class="invoice-actions">
+              <button class="btn btn-sm btn-outline" (click)="viewInvoice(invoice.id)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+                </svg>
+                Ver
+              </button>
+              @if (invoice.verification_status === 'pending') {
+                <button class="btn btn-sm btn-primary" (click)="editInvoice(invoice.id)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+                  </svg>
+                  Editar
+                </button>
+              }
+              <button class="btn btn-sm btn-danger" (click)="deleteInvoice(invoice.id, invoice.invoice_number)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                </svg>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <div class="pagination">
+        <button 
+          class="btn btn-sm btn-outline" 
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)">
+          Anterior
+        </button>
+        
+        @for (page of getPageNumbers(); track page) {
+          <button 
+            class="btn btn-sm" 
+            [class.btn-primary]="page === currentPage()"
+            [class.btn-outline]="page !== currentPage()"
+            (click)="goToPage(page)">
+            {{ page }}
+          </button>
+        }
+        
+        <button 
+          class="btn btn-sm btn-outline" 
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)">
+          Siguiente
+        </button>
+      </div>
+    }
+  }
+</div>

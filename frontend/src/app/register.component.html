@@ -1,0 +1,378 @@
+<div class="register-container">
+  <!-- Header -->
+  <div class="register-header">
+    <div class="logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="currentColor">
+        <path d="M16 2L3 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-13-5z"/>
+        <path d="M12 14l2 2 6-6" stroke="white" stroke-width="2" fill="none"/>
+      </svg>
+      <span>FinTech Pro</span>
+    </div>
+    <a href="/" class="back-link">← Volver al inicio</a>
+  </div>
+
+  <!-- Progress Steps -->
+  <div class="progress-container">
+    <div class="progress-steps">
+      <div class="step" [class.active]="currentStep() >= 1" [class.completed]="currentStep() > 1">
+        <div class="step-number">1</div>
+        <div class="step-label">Perfil</div>
+      </div>
+      <div class="step-line" [class.completed]="currentStep() > 1"></div>
+      <div class="step" [class.active]="currentStep() >= 2" [class.completed]="currentStep() > 2">
+        <div class="step-number">2</div>
+        <div class="step-label">Datos</div>
+      </div>
+      <div class="step-line" [class.completed]="currentStep() > 2"></div>
+      <div class="step" [class.active]="currentStep() >= 3">
+        <div class="step-number">3</div>
+        <div class="step-label">Confirmación</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error and Success Messages -->
+  <div class="message-container" *ngIf="errorMessage() || successMessage()">
+    <div class="error-message-banner" *ngIf="errorMessage()">
+      <span>⚠️ {{ errorMessage() }}</span>
+    </div>
+    <div class="success-message-banner" *ngIf="successMessage()">
+      <span>✅ {{ successMessage() }}</span>
+    </div>
+  </div>
+
+  <!-- Registration Form -->
+  <div class="register-form">
+    <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()">
+      
+      <!-- Step 1: Profile Selection -->
+      <div class="form-step" *ngIf="currentStep() === 1">
+        <div class="step-content">
+          <h2>Selecciona tu Perfil</h2>
+          <p>Elige el tipo de cuenta que mejor se adapte a tus necesidades</p>
+          
+          <div class="profile-selection">
+            <div class="profile-card" 
+                 [class.selected]="selectedProfile() === 'empresa'"
+                 (click)="selectProfile('empresa')">
+              <div class="profile-icon">🏢</div>
+              <h3>Empresa</h3>
+              <p>Necesito liquidez inmediata para mis facturas</p>
+              <ul class="profile-benefits">
+                <li>Adelanto hasta el 90% del valor</li>
+                <li>Proceso 100% digital</li>
+                <li>Sin garantías adicionales</li>
+                <li>Mejora tu flujo de caja</li>
+              </ul>
+            </div>
+            
+            <div class="profile-card" 
+                 [class.selected]="selectedProfile() === 'inversor'"
+                 (click)="selectProfile('inversor')">
+              <div class="profile-icon">💼</div>
+              <h3>Inversor</h3>
+              <p>Busco oportunidades de inversión rentables</p>
+              <ul class="profile-benefits">
+                <li>Rendimientos atractivos</li>
+                <li>Inversiones respaldadas</li>
+                <li>Diversificación de cartera</li>
+                <li>Transparencia total</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" 
+                    class="btn btn-primary btn-large"
+                    [disabled]="!selectedProfile()"
+                    (click)="nextStep()">
+              Continuar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Personal/Company Data -->
+      <div class="form-step" *ngIf="currentStep() === 2">
+        <div class="step-content">
+          <h2>Información {{ selectedProfile() === 'empresa' ? 'de la Empresa' : 'Personal' }}</h2>
+          <p>Completa tus datos para crear tu cuenta</p>
+          
+          <div class="form-grid">
+            <!-- Datos básicos -->
+            <div class="form-section">
+              <h3>Datos de Acceso</h3>
+              
+              <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" 
+                       id="email" 
+                       formControlName="email" 
+                       class="form-control"
+                       [class.error]="getFieldError('email')">
+                <div class="error-message" *ngIf="getFieldError('email')">{{ getFieldError('email') }}</div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="password">Contraseña *</label>
+                  <input type="password" 
+                         id="password" 
+                         formControlName="password" 
+                         class="form-control"
+                         [class.error]="getFieldError('password')">
+                  <div class="error-message" *ngIf="getFieldError('password')">{{ getFieldError('password') }}</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="confirmPassword">Confirmar Contraseña *</label>
+                  <input type="password" 
+                         id="confirmPassword" 
+                         formControlName="confirmPassword" 
+                         class="form-control"
+                         [class.error]="!passwordsMatch() && registrationForm.get('confirmPassword')?.touched">
+                  <div class="error-message" *ngIf="!passwordsMatch() && registrationForm.get('confirmPassword')?.touched">
+                    Las contraseñas no coinciden
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Datos personales -->
+            <div class="form-section">
+              <h3>Datos {{ selectedProfile() === 'empresa' ? 'del Representante' : 'Personales' }}</h3>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="firstName">Nombre *</label>
+                  <input type="text" 
+                         id="firstName" 
+                         formControlName="firstName" 
+                         class="form-control"
+                         [class.error]="getFieldError('firstName')">
+                  <div class="error-message" *ngIf="getFieldError('firstName')">{{ getFieldError('firstName') }}</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="lastName">Apellido *</label>
+                  <input type="text" 
+                         id="lastName" 
+                         formControlName="lastName" 
+                         class="form-control"
+                         [class.error]="getFieldError('lastName')">
+                  <div class="error-message" *ngIf="getFieldError('lastName')">{{ getFieldError('lastName') }}</div>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="phone">Teléfono *</label>
+                <input type="tel" 
+                       id="phone" 
+                       formControlName="phone" 
+                       class="form-control"
+                       [class.error]="getFieldError('phone')">
+                <div class="error-message" *ngIf="getFieldError('phone')">{{ getFieldError('phone') }}</div>
+              </div>
+            </div>
+
+            <!-- Datos específicos de empresa -->
+            <div class="form-section" *ngIf="selectedProfile() === 'empresa'">
+              <h3>Datos de la Empresa</h3>
+              
+              <div class="form-group">
+                <label for="companyName">Razón Social *</label>
+                <input type="text" 
+                       id="companyName" 
+                       formControlName="companyName" 
+                       class="form-control"
+                       [class.error]="getFieldError('companyName')">
+                <div class="error-message" *ngIf="getFieldError('companyName')">{{ getFieldError('companyName') }}</div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="taxId">RUC/NIT *</label>
+                  <input type="text" 
+                         id="taxId" 
+                         formControlName="taxId" 
+                         class="form-control"
+                         [class.error]="getFieldError('taxId')">
+                  <div class="error-message" *ngIf="getFieldError('taxId')">{{ getFieldError('taxId') }}</div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="businessType">Tipo de Negocio *</label>
+                  <select id="businessType" 
+                          formControlName="businessType" 
+                          class="form-control"
+                          [class.error]="getFieldError('businessType')">
+                    <option value="">Seleccionar...</option>
+                    <option value="Manufactura">Manufactura</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Comercio">Comercio</option>
+                    <option value="Construcción">Construcción</option>
+                    <option value="Tecnología">Tecnología</option>
+                    <option value="Salud">Salud</option>
+                    <option value="Educación">Educación</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Agricultura">Agricultura</option>
+                    <option value="Otros">Otros</option>
+                  </select>
+                  <div class="error-message" *ngIf="getFieldError('businessType')">{{ getFieldError('businessType') }}</div>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="companyAddress">Dirección de la Empresa *</label>
+                <textarea id="companyAddress" 
+                          formControlName="companyAddress" 
+                          class="form-control"
+                          rows="3"
+                          [class.error]="getFieldError('companyAddress')"></textarea>
+                <div class="error-message" *ngIf="getFieldError('companyAddress')">{{ getFieldError('companyAddress') }}</div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="monthlyRevenue">Facturación Mensual Promedio</label>
+                  <select id="monthlyRevenue" formControlName="monthlyRevenue" class="form-control">
+                    <option value="">Seleccionar...</option>
+                    <option value="0-50000">$0 - $50,000</option>
+                    <option value="50000-100000">$50,000 - $100,000</option>
+                    <option value="100000-500000">$100,000 - $500,000</option>
+                    <option value="500000+">Más de $500,000</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="yearsInBusiness">Años en el Negocio</label>
+                  <input type="number" 
+                         id="yearsInBusiness" 
+                         formControlName="yearsInBusiness" 
+                         class="form-control"
+                         min="0"
+                         placeholder="0">
+                </div>
+              </div>
+            </div>
+
+            <!-- Datos específicos de inversor -->
+            <div class="form-section" *ngIf="selectedProfile() === 'inversor'">
+              <h3>Perfil de Inversión</h3>
+              
+              <div class="form-group">
+                <label for="investmentCapacity">Capacidad de Inversión *</label>
+                <select id="investmentCapacity" 
+                        formControlName="investmentCapacity" 
+                        class="form-control"
+                        [class.error]="getFieldError('investmentCapacity')">
+                  <option value="">Seleccionar...</option>
+                  <option value="10000-50000">$10,000 - $50,000</option>
+                  <option value="50000-100000">$50,000 - $100,000</option>
+                  <option value="100000-500000">$100,000 - $500,000</option>
+                  <option value="500000+">Más de $500,000</option>
+                </select>
+                <div class="error-message" *ngIf="getFieldError('investmentCapacity')">{{ getFieldError('investmentCapacity') }}</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="riskProfile">Perfil de Riesgo *</label>
+                <select id="riskProfile" 
+                        formControlName="riskProfile" 
+                        class="form-control"
+                        [class.error]="getFieldError('riskProfile')">
+                  <option value="">Seleccionar...</option>
+                  <option value="conservador">Conservador</option>
+                  <option value="moderado">Moderado</option>
+                  <option value="agresivo">Agresivo</option>
+                </select>
+                <div class="error-message" *ngIf="getFieldError('riskProfile')">{{ getFieldError('riskProfile') }}</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="investmentExperience">Experiencia en Inversiones *</label>
+                <select id="investmentExperience" 
+                        formControlName="investmentExperience" 
+                        class="form-control"
+                        [class.error]="getFieldError('investmentExperience')">
+                  <option value="">Seleccionar...</option>
+                  <option value="principiante">Principiante (0-2 años)</option>
+                  <option value="intermedio">Intermedio (2-5 años)</option>
+                  <option value="avanzado">Avanzado (5+ años)</option>
+                </select>
+                <div class="error-message" *ngIf="getFieldError('investmentExperience')">{{ getFieldError('investmentExperience') }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="previousStep()">
+              Anterior
+            </button>
+            <button type="button" class="btn btn-primary" (click)="nextStep()">
+              Continuar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Terms and Confirmation -->
+      <div class="form-step" *ngIf="currentStep() === 3">
+        <div class="step-content">
+          <h2>Términos y Condiciones</h2>
+          <p>Revisa y acepta nuestros términos para completar tu registro</p>
+          
+          <div class="terms-section">
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="acceptTerms">
+                <span class="checkmark"></span>
+                Acepto los <a href="#" target="_blank">Términos y Condiciones</a> de uso de la plataforma
+              </label>
+              <div class="error-message" *ngIf="getFieldError('acceptTerms')">{{ getFieldError('acceptTerms') }}</div>
+            </div>
+            
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="acceptPrivacy">
+                <span class="checkmark"></span>
+                Acepto la <a href="#" target="_blank">Política de Privacidad</a> y el tratamiento de mis datos
+              </label>
+              <div class="error-message" *ngIf="getFieldError('acceptPrivacy')">{{ getFieldError('acceptPrivacy') }}</div>
+            </div>
+          </div>
+          
+          <div class="summary-section">
+            <h3>Resumen de tu Registro</h3>
+            <div class="summary-card">
+              <div class="summary-item">
+                <strong>Perfil:</strong> {{ selectedProfile() === 'empresa' ? 'Empresa' : 'Inversor' }}
+              </div>
+              <div class="summary-item">
+                <strong>Email:</strong> {{ registrationForm.get('email')?.value }}
+              </div>
+              <div class="summary-item" *ngIf="selectedProfile() === 'empresa'">
+                <strong>Empresa:</strong> {{ registrationForm.get('companyName')?.value }}
+              </div>
+              <div class="summary-item">
+                <strong>Nombre:</strong> {{ registrationForm.get('firstName')?.value }} {{ registrationForm.get('lastName')?.value }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="previousStep()">
+              Anterior
+            </button>
+            <button type="submit" 
+                    class="btn btn-primary btn-large"
+                    [disabled]="!registrationForm.valid || isLoading() || !passwordsMatch()">
+              <span *ngIf="!isLoading()">Crear Cuenta</span>
+              <span *ngIf="isLoading()" class="loading-spinner">Creando cuenta...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,271 @@
+<div class="nueva-factura-container">
+  <div class="header">
+    <button class="back-button" (click)="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Volver
+    </button>
+    <h1>Nueva Factura</h1>
+  </div>
+
+  <div class="operation-type-selector">
+    <h2>Tipo de Operación</h2>
+    <div class="operation-buttons">
+      <button 
+        type="button" 
+        class="operation-btn" 
+        [class.active]="selectedOperationType() === 'factoring'"
+        (click)="selectOperationType('factoring')">
+        <div class="operation-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="operation-content">
+          <h3>Factoring</h3>
+          <p>Vende tu factura y recibe el dinero de inmediato</p>
+        </div>
+      </button>
+      
+      <button 
+        type="button" 
+        class="operation-btn" 
+        [class.active]="selectedOperationType() === 'confirming'"
+        (click)="selectOperationType('confirming')">
+        <div class="operation-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="operation-content">
+          <h3>Confirming</h3>
+          <p>Confirma el pago de tu factura con garantía</p>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="invoiceForm" (ngSubmit)="onSubmit()" class="invoice-form">
+    <div class="form-section">
+      <h3>Información de la Factura</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="invoice_number">Número de Factura *</label>
+          <input 
+            type="text" 
+            id="invoice_number" 
+            formControlName="invoice_number"
+            placeholder="Ej: FAC-2024-001"
+            [class.error]="invoiceForm.get('invoice_number')?.invalid && invoiceForm.get('invoice_number')?.touched">
+          <div class="error-message" *ngIf="invoiceForm.get('invoice_number')?.invalid && invoiceForm.get('invoice_number')?.touched">
+            El número de factura es requerido
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="amount">Monto *</label>
+          <div class="input-with-currency">
+            <span class="currency">$</span>
+            <input 
+              type="number" 
+              id="amount" 
+              formControlName="amount"
+              placeholder="0.00"
+              step="0.01"
+              min="0.01"
+              [class.error]="invoiceForm.get('amount')?.invalid && invoiceForm.get('amount')?.touched">
+          </div>
+          <div class="error-message" *ngIf="invoiceForm.get('amount')?.invalid && invoiceForm.get('amount')?.touched">
+            <span *ngIf="invoiceForm.get('amount')?.errors?.['required']">El monto es requerido</span>
+            <span *ngIf="invoiceForm.get('amount')?.errors?.['min']">El monto debe ser mayor a 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Información del Cliente</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="client_name">Nombre del Cliente *</label>
+          <input 
+            type="text" 
+            id="client_name" 
+            formControlName="client_name"
+            placeholder="Nombre de la empresa o persona"
+            [class.error]="invoiceForm.get('client_name')?.invalid && invoiceForm.get('client_name')?.touched">
+          <div class="error-message" *ngIf="invoiceForm.get('client_name')?.invalid && invoiceForm.get('client_name')?.touched">
+            El nombre del cliente es requerido
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="client_tax_id">RUT/NIT del Cliente *</label>
+          <input 
+            type="text" 
+            id="client_tax_id" 
+            formControlName="client_tax_id"
+            placeholder="12.345.678-9"
+            [class.error]="invoiceForm.get('client_tax_id')?.invalid && invoiceForm.get('client_tax_id')?.touched">
+          <div class="error-message" *ngIf="invoiceForm.get('client_tax_id')?.invalid && invoiceForm.get('client_tax_id')?.touched">
+            El RUT/NIT del cliente es requerido
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Fechas</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="issue_date">Fecha de Emisión *</label>
+          <input 
+            type="date" 
+            id="issue_date" 
+            formControlName="issue_date"
+            [class.error]="invoiceForm.get('issue_date')?.invalid && invoiceForm.get('issue_date')?.touched">
+          <div class="error-message" *ngIf="invoiceForm.get('issue_date')?.invalid && invoiceForm.get('issue_date')?.touched">
+            La fecha de emisión es requerida
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="due_date">Fecha de Vencimiento *</label>
+          <input 
+            type="date" 
+            id="due_date" 
+            formControlName="due_date"
+            [class.error]="invoiceForm.get('due_date')?.invalid && invoiceForm.get('due_date')?.touched">
+          <div class="error-message" *ngIf="invoiceForm.get('due_date')?.invalid && invoiceForm.get('due_date')?.touched">
+            La fecha de vencimiento es requerida
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Descripción</h3>
+      <div class="form-group">
+        <label for="description">Descripción Adicional</label>
+        <textarea 
+          id="description" 
+          formControlName="description"
+          placeholder="Información adicional sobre la factura (opcional)"
+          rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Documento</h3>
+      <div class="file-upload-area" 
+           [class.dragover]="isDragOver()"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onDrop($event)"
+           (click)="fileInput.click()">
+        <input 
+          #fileInput
+          type="file" 
+          accept=".pdf,.jpg,.jpeg,.png"
+          (change)="onFileSelected($event)"
+          style="display: none;">
+        
+        <div class="upload-content" *ngIf="!selectedFile()">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <p>Arrastra y suelta tu archivo aquí o <strong>haz clic para seleccionar</strong></p>
+          <small>Formatos soportados: PDF, JPG, PNG (máx. 10MB)</small>
+        </div>
+        
+        <div class="file-selected" *ngIf="selectedFile()">
+          <div class="file-info">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+            </svg>
+            <div class="file-details">
+              <span class="file-name">{{ selectedFile()?.name }}</span>
+              <span class="file-size">{{ formatFileSize(selectedFile()?.size || 0) }}</span>
+            </div>
+          </div>
+          <button type="button" class="remove-file" (click)="removeFile($event)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <div class="error-message" *ngIf="fileError()">
+        {{ fileError() }}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" (click)="goBack()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="invoiceForm.invalid || isSubmitting()">
+        <span *ngIf="!isSubmitting()">Crear Factura</span>
+        <span *ngIf="isSubmitting()" class="loading">
+          <svg class="spinner" width="16" height="16" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="31.416" stroke-dashoffset="31.416">
+              <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/>
+              <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+          Creando...
+        </span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" *ngIf="showSuccessModal()" (click)="closeSuccessModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="success-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+      <h2>¡Factura Creada Exitosamente!</h2>
+    </div>
+    
+    <div class="modal-body">
+      <p>Tu factura ha sido registrada correctamente y está siendo procesada.</p>
+      <div class="invoice-summary" *ngIf="createdInvoice()">
+        <div class="summary-item">
+          <strong>Número:</strong> {{ createdInvoice()?.invoice_number }}
+        </div>
+        <div class="summary-item">
+          <strong>Monto:</strong> ${{ createdInvoice()?.amount | number:'1.2-2' }}
+        </div>
+        <div class="summary-item">
+          <strong>Tipo:</strong> {{ selectedOperationType() === 'factoring' ? 'Factoring' : 'Confirming' }}
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-actions">
+      <button class="btn-secondary" (click)="createAnother()">
+        Crear Otra Factura
+      </button>
+      <button class="btn-primary" (click)="goToDashboard()">
+        Ir al Dashboard
+      </button>
+    </div>
+  </div>
+</div>
