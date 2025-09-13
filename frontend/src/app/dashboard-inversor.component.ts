@@ -90,9 +90,9 @@ export class DashboardInversorComponent implements OnInit {
           id: opp.id.toString(),
           companyName: opp.companyName,
           facturaNumber: opp.facturaNumber,
-          amount: opp.amount,
-          interestRate: (opp.expectedReturn / opp.amount) * 100, // Calcular tasa de interés
-          term: Math.ceil((new Date(opp.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)), // Días hasta vencimiento
+          amount: opp.amount || 0,
+          interestRate: (opp.interestRate || 0) / 100,
+          term: opp.term || 0,
           riskLevel: this.mapRiskLevel(opp.riskLevel),
           dueDate: new Date(opp.dueDate)
         }));
@@ -148,10 +148,19 @@ export class DashboardInversorComponent implements OnInit {
     this.router.navigate(['/perfil']);
   }
 
+  navigateToMisPropuestas() {
+    this.router.navigate(['/mis-propuestas']);
+  }
+
   investInOpportunity(opportunityId: string) {
-    // TODO: Implementar lógica de inversión
+    // Navegar a crear propuesta de inversión
     console.log('Invertir en oportunidad:', opportunityId);
-    this.router.navigate(['/oportunidades', opportunityId, 'invertir']);
+    this.router.navigate(['/crear-propuesta', opportunityId]);
+  }
+
+  createProposal(opportunityId: string) {
+    console.log('Crear propuesta para oportunidad:', opportunityId);
+    this.router.navigate(['/crear-propuesta', opportunityId]);
   }
 
   logout() {
@@ -167,23 +176,30 @@ export class DashboardInversorComponent implements OnInit {
     });
   }
 
-  formatCurrency(amount: number | string | null | undefined): string {
-    if (amount === null || amount === undefined) {
-      return '$0';
-    }
-    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (isNaN(numericAmount)) {
+  formatCurrency(amount: number | null | undefined): string {
+    if (amount === null || amount === undefined || isNaN(amount)) {
       return '$0';
     }
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
       minimumFractionDigits: 0
-    }).format(numericAmount);
+    }).format(amount);
   }
 
-  formatPercentage(rate: number): string {
-    return `${rate.toFixed(1)}%`;
+  formatPercentage(value: number | null | undefined): string {
+    if (value === null || value === undefined || isNaN(value)) {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'percent',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(0);
+    }
+    return new Intl.NumberFormat('es-MX', {
+      style: 'percent',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
   }
 
   formatDate(date: Date): string {
@@ -257,7 +273,11 @@ export class DashboardInversorComponent implements OnInit {
   }
 
   calculateExpectedReturn(amount: number, rate: number, term: number): number {
-    return (amount * rate * term) / (365 * 100);
+    // Verificar que los valores sean números válidos
+    if (isNaN(amount) || isNaN(rate) || isNaN(term) || amount <= 0) {
+      return 0;
+    }
+    return (amount * rate * term) / 365;
   }
 
   private mapRiskLevel(backendRiskLevel: string): 'bajo' | 'medio' | 'alto' {

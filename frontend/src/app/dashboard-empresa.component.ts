@@ -9,6 +9,7 @@ import { FacturasListComponent } from './facturas-list.component';
 interface DashboardStats {
   totalFacturas: number;
   facturasPendientes: number;
+  facturasCaducadas: number;
   montoTotal: number;
   montoDisponible: number;
 }
@@ -33,6 +34,7 @@ export class DashboardEmpresaComponent implements OnInit {
   stats = signal<DashboardStats>({
     totalFacturas: 0,
     facturasPendientes: 0,
+    facturasCaducadas: 0,
     montoTotal: 0,
     montoDisponible: 0
   });
@@ -40,7 +42,7 @@ export class DashboardEmpresaComponent implements OnInit {
   isLoading = signal(true);
   error = signal('');
   showFacturasList = signal(false);
-  facturasListType = signal<'all' | 'pending'>('all');
+  facturasListType = signal<'all' | 'pending' | 'expired'>('all');
 
   constructor(
     private authService: AuthService,
@@ -67,11 +69,28 @@ export class DashboardEmpresaComponent implements OnInit {
     this.isLoading.set(true);
     this.error.set('');
     
+    // First, update expired invoices automatically
+    this.invoiceService.updateExpiredInvoices().subscribe({
+      next: (updateResult) => {
+        console.log('Expired invoices updated:', updateResult.message);
+        // After updating expired invoices, load the dashboard stats
+        this.loadStats();
+      },
+      error: (error) => {
+        console.warn('Warning: Could not update expired invoices:', error);
+        // Continue loading stats even if update fails
+        this.loadStats();
+      }
+    });
+  }
+
+  private loadStats() {
     this.invoiceService.getInvoiceStats().subscribe({
       next: (data) => {
         this.stats.set({
           totalFacturas: data.totalFacturas,
           facturasPendientes: data.facturasPendientes,
+          facturasCaducadas: data.facturasCaducadas || 0,
           montoTotal: data.montoTotal,
           montoDisponible: data.montoDisponible
         });
@@ -99,6 +118,7 @@ export class DashboardEmpresaComponent implements OnInit {
         this.stats.set({
           totalFacturas: 0,
           facturasPendientes: 0,
+          facturasCaducadas: 0,
           montoTotal: 0,
           montoDisponible: 0
         });
@@ -121,6 +141,11 @@ export class DashboardEmpresaComponent implements OnInit {
     this.showFacturasList.set(true);
   }
 
+  showFacturasCaducadas() {
+    this.facturasListType.set('expired');
+    this.showFacturasList.set(true);
+  }
+
   hideFacturasList() {
     this.showFacturasList.set(false);
   }
@@ -139,6 +164,10 @@ export class DashboardEmpresaComponent implements OnInit {
 
   navigateToProfile() {
     this.router.navigate(['/perfil']);
+  }
+
+  navigateToPropuestasRecibidas() {
+    this.router.navigate(['/propuestas-recibidas']);
   }
 
   logout() {

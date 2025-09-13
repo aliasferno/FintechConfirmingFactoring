@@ -104,6 +104,27 @@
   color: white;
 }
 
+.btn-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 .btn-danger {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
@@ -300,6 +321,10 @@
   border-left-color: #ef4444;
 }
 
+.factura-card.status-expired {
+  border-left-color: #dc2626;
+}
+
 /* Factura Header */
 .factura-header {
   display: flex;
@@ -369,6 +394,11 @@
 .status-badge.status-rejected {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.status-badge.status-expired {
+  background: #fecaca;
+  color: #7f1d1d;
 }
 
 /* Factura Details */

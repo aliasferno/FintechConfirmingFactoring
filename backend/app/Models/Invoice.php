@@ -74,6 +74,7 @@ class Invoice extends Model
     const STATUS_FUNDED = 'funded';
     const STATUS_PAID = 'paid';
     const STATUS_REJECTED = 'rejected';
+    const STATUS_EXPIRED = 'expired';
 
     /**
      * The possible operation types for an invoice.

@@ -18,6 +18,12 @@ class InvoiceController extends Controller
     {
         $query = Invoice::with(['company.user', 'investments']);
         
+        // Filter by company if user is a company
+        $user = auth()->user();
+        if ($user && $user->hasRole('empresa') && $user->company) {
+            $query->where('company_id', $user->company->id);
+        }
+        
         // Filter by status if provided
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -26,6 +32,11 @@ class InvoiceController extends Controller
         // Filter by verification status if provided
         if ($request->has('verification_status')) {
             $query->where('verification_status', $request->verification_status);
+        }
+        
+        // Filter by operation type if provided
+        if ($request->has('operation_type')) {
+            $query->where('operation_type', $request->operation_type);
         }
         
         // Filter approved invoices
@@ -38,7 +49,20 @@ class InvoiceController extends Controller
             $query->funded();
         }
         
-        $invoices = $query->paginate(15);
+        // Filter expired invoices
+        if ($request->has('expired') && $request->expired) {
+            $query->where('status', 'expired');
+        }
+        
+        // Exclude expired invoices
+        if ($request->has('exclude_expired') && $request->exclude_expired) {
+            $query->where(function($q) {
+                $q->where('due_date', '>=', now())
+                  ->orWhereNotIn('status', ['pending', 'approved']);
+            });
+        }
+        
+        $invoices = $query->orderBy('created_at', 'desc')->paginate(15);
         
         // Convert monetary values to float for each invoice
         $invoices->getCollection()->transform(function ($invoice) {
@@ -845,7 +869,10 @@ class InvoiceController extends Controller
             
             $totalFacturas = Invoice::where('company_id', $companyId)->count();
             $facturasPendientes = Invoice::where('company_id', $companyId)
-                ->whereIn('status', ['pending', 'approved'])
+                ->where('status', 'pending')
+                ->count();
+            $facturasCaducadas = Invoice::where('company_id', $companyId)
+                ->where('status', 'expired')
                 ->count();
             $montoTotal = (float) Invoice::where('company_id', $companyId)
                 ->sum('amount');
@@ -872,6 +899,7 @@ class InvoiceController extends Controller
             return response()->json([
                 'totalFacturas' => $totalFacturas,
                 'facturasPendientes' => $facturasPendientes,
+                'facturasCaducadas' => $facturasCaducadas,
                 'montoTotal' => $montoTotal,
                 'montoDisponible' => $montoDisponible ?: 0,
                 'recentActivities' => $recentActivities,
@@ -888,7 +916,8 @@ class InvoiceController extends Controller
         
         // For admin users or general stats
         $totalFacturas = Invoice::count();
-        $facturasPendientes = Invoice::whereIn('status', ['pending', 'approved'])->count();
+        $facturasPendientes = Invoice::where('status', 'pending')->count();
+        $facturasCaducadas = Invoice::where('status', 'expired')->count();
         $montoTotal = (float) Invoice::sum('amount');
         $montoDisponible = (float) Invoice::where('status', 'approved')->sum('net_amount');
         
@@ -910,6 +939,7 @@ class InvoiceController extends Controller
         return response()->json([
             'totalFacturas' => $totalFacturas,
             'facturasPendientes' => $facturasPendientes,
+            'facturasCaducadas' => $facturasCaducadas,
             'montoTotal' => $montoTotal,
             'montoDisponible' => $montoDisponible ?: 0,
             'recentActivities' => $recentActivities,
@@ -917,6 +947,134 @@ class InvoiceController extends Controller
                 'confirming' => Invoice::where('operation_type', 'confirming')->count(),
                 'factoring' => Invoice::where('operation_type', 'factoring')->count()
             ]
+        ]);
+    }
+
+    /**
+     * Update expired invoices by calling the Artisan command
+     */
+    public function updateExpiredInvoices()
+    {
+        try {
+            // Execute the Artisan command
+            \Illuminate\Support\Facades\Artisan::call('invoices:update-expired');
+            
+            // Get the count of updated invoices
+            $expiredCount = Invoice::where('status', Invoice::STATUS_EXPIRED)
+                ->where('updated_at', '>=', now()->subMinute())
+                ->count();
+            
+            return response()->json([
+                'message' => 'Expired invoices updated successfully',
+                'updated_count' => $expiredCount
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error updating expired invoices',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Public method to get all invoices for investment opportunities (no authentication required).
+     */
+    public function publicIndex(Request $request)
+    {
+        $query = Invoice::approved()
+            ->with(['company.user'])
+            ->whereHas('company', function ($query) {
+                $query->where('verification_status', 'verified');
+            });
+        
+        // Filter by operation type if provided
+        if ($request->has('operation_type')) {
+            $query->where('operation_type', $request->operation_type);
+        }
+        
+        $invoices = $query->paginate(15);
+        
+        // Convert monetary values to float for each invoice
+        $invoices->getCollection()->transform(function ($invoice) {
+            $invoice->amount = (float) $invoice->amount;
+            $invoice->net_amount = (float) $invoice->net_amount;
+            if ($invoice->discount_rate) {
+                $invoice->discount_rate = (float) $invoice->discount_rate;
+            }
+            if ($invoice->advance_percentage) {
+                $invoice->advance_percentage = (float) $invoice->advance_percentage;
+            }
+            if ($invoice->commission_rate) {
+                $invoice->commission_rate = (float) $invoice->commission_rate;
+            }
+            if ($invoice->early_payment_discount) {
+                $invoice->early_payment_discount = (float) $invoice->early_payment_discount;
+            }
+            return $invoice;
+        });
+        
+        return response()->json($invoices);
+    }
+
+    /**
+     * Public method to get a specific invoice for investment opportunities (no authentication required).
+     */
+    public function publicShow(string $id)
+    {
+        $invoice = Invoice::approved()
+            ->with(['company.user'])
+            ->whereHas('company', function ($query) {
+                $query->where('verification_status', 'verified');
+            })
+            ->find($id);
+        
+        if (!$invoice) {
+            return response()->json([
+                'message' => 'Invoice not found or not available for investment'
+            ], Response::HTTP_NOT_FOUND);
+        }
+        
+        // Convert monetary values to float
+        $invoice->amount = (float) $invoice->amount;
+        $invoice->net_amount = (float) $invoice->net_amount;
+        if ($invoice->discount_rate) {
+            $invoice->discount_rate = (float) $invoice->discount_rate;
+        }
+        if ($invoice->advance_percentage) {
+            $invoice->advance_percentage = (float) $invoice->advance_percentage;
+        }
+        if ($invoice->commission_rate) {
+            $invoice->commission_rate = (float) $invoice->commission_rate;
+        }
+        if ($invoice->early_payment_discount) {
+            $invoice->early_payment_discount = (float) $invoice->early_payment_discount;
+        }
+        
+        return response()->json($invoice);
+    }
+
+    /**
+     * Approve an invoice
+     */
+    public function approve(string $id)
+    {
+        $invoice = Invoice::findOrFail($id);
+        
+        // Check if user has permission to approve this invoice
+        $user = auth()->user();
+        if ($user->hasRole('empresa') && $user->company && $invoice->company_id !== $user->company->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        // Update invoice status to approved and verification status to verified
+        $invoice->update([
+            'status' => 'approved',
+            'verification_status' => 'verified'
+        ]);
+        
+        return response()->json([
+            'message' => 'Invoice approved successfully',
+            'invoice' => $invoice->fresh(['company.user', 'investments'])
         ]);
     }
 }

@@ -174,6 +174,11 @@
   color: white;
 }
 
+.stat-card.danger .stat-icon {
+  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+  color: white;
+}
+
 .stat-card.success .stat-icon {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
@@ -182,6 +187,11 @@
 .stat-card.info .stat-icon {
   background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
   color: white;
+}
+
+.stat-card.danger {
+  border-left: 4px solid #f56565;
+  background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
 }
 
 .stat-icon svg {

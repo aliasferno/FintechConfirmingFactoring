@@ -29,6 +29,11 @@ Route::get('/test-route', function() { return response()->json(['message' => 'Te
 Route::post('/test-post', function() { return response()->json(['message' => 'Test POST route works']); });
 Route::post('/register', [UserController::class, 'store']);
 
+// Public investment opportunities routes (for investors to browse without authentication)
+Route::get('/public/investment-opportunities', [InvoiceController::class, 'availableForInvestment']);
+Route::get('/public/invoices', [InvoiceController::class, 'publicIndex']);
+Route::get('/public/invoices/{id}', [InvoiceController::class, 'publicShow']);
+
 
 
 // Protected routes
@@ -47,7 +52,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Invoice routes
     Route::get('/invoices/stats', [InvoiceController::class, 'stats']);
     Route::get('/invoices/available-for-investment', [InvoiceController::class, 'availableForInvestment']);
+    Route::post('/invoices/update-expired', [InvoiceController::class, 'updateExpiredInvoices']);
     Route::put('/invoices/{id}/verification-status', [InvoiceController::class, 'updateVerificationStatus']);
+    Route::patch('/invoices/{id}/approve', [InvoiceController::class, 'approve']);
     Route::get('/invoices/by-company/{companyId}', [InvoiceController::class, 'byCompany']);
     
     // Factoring specific routes
@@ -83,8 +90,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/investments/investor-stats', [InvestmentController::class, 'investorStats']);
     Route::get('/investments/statistics', [InvestmentController::class, 'statistics']);
     Route::get('/investments/opportunities', [InvestmentController::class, 'opportunities']);
+    Route::get('/investments/opportunities/{id}', [InvestmentController::class, 'getOpportunity']);
     Route::put('/investments/{id}/process-return', [InvestmentController::class, 'processReturn']);
     Route::apiResource('investments', InvestmentController::class);
+    
+    // Investment Proposal routes
+    Route::get('/investment-proposals/investor', [App\Http\Controllers\InvestmentProposalController::class, 'investorProposals']);
+    Route::get('/investment-proposals/company', [App\Http\Controllers\InvestmentProposalController::class, 'companyProposals']);
+    Route::get('/investment-proposals/statistics', [App\Http\Controllers\InvestmentProposalController::class, 'statistics']);
+    Route::post('/investment-proposals/{id}/respond', [App\Http\Controllers\InvestmentProposalController::class, 'respond']);
+    Route::post('/investment-proposals/{id}/send', [App\Http\Controllers\InvestmentProposalController::class, 'sendProposal']);
+    Route::post('/investment-proposals/{id}/approve', [App\Http\Controllers\InvestmentProposalController::class, 'approveProposal']);
+    Route::post('/investment-proposals/{id}/reject', [App\Http\Controllers\InvestmentProposalController::class, 'rejectProposal']);
+    Route::post('/investment-proposals/mark-expired', [App\Http\Controllers\InvestmentProposalController::class, 'markExpired']);
+    Route::apiResource('investment-proposals', App\Http\Controllers\InvestmentProposalController::class);
     
     // Role and Permission Test Routes
     Route::prefix('test-permissions')->group(function () {

@@ -288,6 +288,13 @@ export class InvoiceService {
   }
 
   /**
+   * Get a public invoice by ID (no authentication required)
+   */
+  getPublicInvoice(id: number): Observable<Invoice> {
+    return this.http.get<Invoice>(`${this.apiUrl}/public/invoices/${id}`);
+  }
+
+  /**
    * Update verification status of an invoice
    */
   updateVerificationStatus(id: number, status: string, notes?: string): Observable<InvoiceResponse> {
@@ -309,6 +316,7 @@ export class InvoiceService {
   getInvoiceStats(companyId?: number): Observable<{
     totalFacturas: number;
     facturasPendientes: number;
+    facturasCaducadas: number;
     montoTotal: number;
     montoDisponible: number;
     facturasPorTipo: {
@@ -374,5 +382,26 @@ export class InvoiceService {
     ];
   }
 
+  /**
+   * Approve an invoice
+   */
+  approveInvoice(id: number): Observable<InvoiceResponse> {
+    return this.http.patch<InvoiceResponse>(
+      `${this.apiUrl}/invoices/${id}/approve`, 
+      {}, 
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Update expired invoices
+   */
+  updateExpiredInvoices(): Observable<{ message: string; updated_count: number }> {
+    return this.http.post<{ message: string; updated_count: number }>(
+      `${this.apiUrl}/invoices/update-expired`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
 
 }

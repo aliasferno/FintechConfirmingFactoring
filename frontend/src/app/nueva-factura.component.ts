@@ -25,7 +25,7 @@ export interface InvoiceRequest {
   // Campos específicos para confirming
   supplier_name?: string;
   supplier_tax_id?: string;
-  payment_terms?: number;
+  payment_terms?: string;
   early_payment_discount?: number;
   confirmation_deadline?: string;
 }
@@ -669,7 +669,7 @@ export class NuevaFacturaComponent implements OnInit {
         // Asegurar que todos los campos requeridos para confirming estén presentes
         formData.append('supplier_name', formValue.supplier_name);
         formData.append('supplier_tax_id', formValue.supplier_tax_id);
-        formData.append('payment_terms', formValue.payment_terms);
+        formData.append('payment_terms', formValue.payment_terms.toString());
         formData.append('confirmation_deadline', formValue.confirmation_deadline);
         // Este campo es opcional según la validación
         if (formValue.early_payment_discount) formData.append('early_payment_discount', formValue.early_payment_discount);

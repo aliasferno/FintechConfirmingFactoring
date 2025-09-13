@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { AuthService } from './auth.service';
 
 export interface InvestorStats {
@@ -17,6 +17,8 @@ export interface InvestmentOpportunity {
   companyName: string;
   facturaNumber: string;
   amount: number;
+  interestRate: number;
+  term: number;
   expectedReturn: number;
   riskLevel: string;
   dueDate: string;
@@ -114,16 +116,32 @@ export class InvestmentService {
     );
   }
 
-  getInvestmentOpportunities(): Observable<InvestmentOpportunity[]> {
-    return this.http.get<InvestmentOpportunity[]>(
+  getInvestmentOpportunities(): Observable<any[]> {
+    return this.http.get<any>(
       `${this.apiUrl}/investments/opportunities`,
       { headers: this.getHeaders() }
+    ).pipe(
+      map(response => {
+        // Si la respuesta tiene una estructura paginada
+        if (response && typeof response === 'object' && 'data' in response) {
+          return response.data;
+        }
+        // Si la respuesta es un array directamente
+        return response;
+      })
     );
   }
 
   getInvestmentStatistics(): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/investments/statistics`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getInvestmentOpportunity(id: number): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/investments/opportunities/${id}`,
       { headers: this.getHeaders() }
     );
   }

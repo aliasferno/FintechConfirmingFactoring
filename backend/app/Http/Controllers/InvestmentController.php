@@ -267,7 +267,11 @@ class InvestmentController extends Controller
             ->with(['company.user'])
             ->whereHas('company', function ($q) {
                 $q->where('verification_status', 'verified');
-            });
+            })
+            // Filtrar facturas vencidas - solo mostrar facturas no vencidas
+            ->where('due_date', '>', now());
+        
+        // No filtrar por tipo de operación para mostrar tanto factoring como confirming
         
         // Filter by risk score if provided
         if ($request->has('max_risk_score')) {
@@ -311,6 +315,45 @@ class InvestmentController extends Controller
         });
         
         return response()->json($opportunities);
+    }
+
+    /**
+     * Get a specific investment opportunity by ID.
+     */
+    public function getOpportunity(string $id)
+    {
+        $opportunity = Invoice::approved()
+            ->with(['company.user'])
+            ->whereHas('company', function ($q) {
+                $q->where('verification_status', 'verified');
+            })
+            // Filtrar facturas vencidas - solo mostrar facturas no vencidas
+            ->where('due_date', '>', now())
+            ->find($id);
+        
+        if (!$opportunity) {
+            return response()->json([
+                'message' => 'Investment opportunity not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+        
+        // Convert monetary values to float
+        $opportunity->amount = (float) $opportunity->amount;
+        $opportunity->net_amount = (float) $opportunity->net_amount;
+        if ($opportunity->discount_rate) {
+            $opportunity->discount_rate = (float) $opportunity->discount_rate;
+        }
+        if ($opportunity->advance_percentage) {
+            $opportunity->advance_percentage = (float) $opportunity->advance_percentage;
+        }
+        if ($opportunity->commission_rate) {
+            $opportunity->commission_rate = (float) $opportunity->commission_rate;
+        }
+        if ($opportunity->early_payment_discount) {
+            $opportunity->early_payment_discount = (float) $opportunity->early_payment_discount;
+        }
+        
+        return response()->json($opportunity);
     }
 
     /**
@@ -382,13 +425,29 @@ class InvestmentController extends Controller
             ->limit(5)
             ->get()
             ->map(function ($invoice) {
+                $amount = (float) $invoice->amount;
+                
+                // Calcular tasa de interés con la misma lógica de priorización
+                $interestRate = 0;
+                if ($invoice->operation_type === 'factoring' && $invoice->commission_rate > 0) {
+                    $interestRate = $invoice->commission_rate;
+                } elseif ($invoice->operation_type === 'confirming' && $invoice->early_payment_discount > 0) {
+                    $interestRate = $invoice->early_payment_discount;
+                } elseif ($invoice->discount_rate > 0) {
+                    $interestRate = $invoice->discount_rate;
+                }
+                
+                $term = (int) now()->diffInDays($invoice->due_date);
+                $expectedReturn = ($amount * $interestRate * $term) / (365 * 100);
+                
                 return [
                     'id' => $invoice->id,
                     'companyName' => $invoice->company->business_name ?? 'N/A',
                     'facturaNumber' => $invoice->invoice_number,
-                    'amount' => (float) $invoice->amount,
-                    'interestRate' => $invoice->discount_rate ?? 12.0,
-                    'term' => now()->diffInDays($invoice->due_date),
+                    'amount' => $amount,
+                    'interestRate' => $interestRate,
+                    'term' => $term,
+                    'expectedReturn' => $expectedReturn,
                     'riskLevel' => $this->calculateRiskLevel($invoice->risk_score ?? 50),
                     'dueDate' => $invoice->due_date->toISOString()
                 ];

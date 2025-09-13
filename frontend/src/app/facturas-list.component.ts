@@ -24,12 +24,12 @@ import { ConfirmationModalComponent } from './confirmation-modal.component';
             </svg>
             Nueva Factura
           </button>
-          <button class="btn-secondary" (click)="goBack()">
+          <a href="/dashboard/empresa" class="btn-secondary" id="btnVolver">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
             Volver
-          </button>
+          </a>
         </div>
       </div>
 
@@ -148,6 +148,14 @@ import { ConfirmationModalComponent } from './confirmation-modal.component';
                       Editar
                     </button>
                   }
+                  @if (factura.status === 'pending') {
+                    <button class="btn-success" (click)="approveInvoice(factura.id)">
+                      <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      Aprobar
+                    </button>
+                  }
                   <button class="btn-danger" (click)="deleteInvoice(factura.id, factura.invoice_number)">
                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -177,7 +185,7 @@ import { ConfirmationModalComponent } from './confirmation-modal.component';
   styleUrls: ['./facturas-list.component.css']
 })
 export class FacturasListComponent implements OnInit {
-  @Input() filterType: 'all' | 'pending' | 'approved' | 'funded' | 'rejected' = 'all';
+  @Input() filterType: 'all' | 'pending' | 'approved' | 'funded' | 'rejected' | 'expired' = 'all';
   @Output() closeModal = new EventEmitter<void>();
   
   facturas = signal<Invoice[]>([]);
@@ -197,6 +205,16 @@ export class FacturasListComponent implements OnInit {
 
   ngOnInit() {
     this.loadFacturas();
+    
+    // Agregar un evento click directo al botón después de que el componente se inicialice
+    setTimeout(() => {
+      const btnVolver = document.getElementById('btnVolver');
+      if (btnVolver) {
+        btnVolver.addEventListener('click', () => {
+          this.goBack();
+        });
+      }
+    }, 500);
   }
 
   loadFacturas() {
@@ -213,6 +231,11 @@ export class FacturasListComponent implements OnInit {
       params.status = 'funded';
     } else if (this.filterType === 'rejected') {
       params.status = 'rejected';
+    } else if (this.filterType === 'expired') {
+      params.expired = true;
+    } else if (this.filterType === 'all') {
+      // Exclude expired invoices from 'all' view
+      params.exclude_expired = true;
     }
 
     this.invoiceService.getInvoices(params).subscribe({
@@ -238,6 +261,8 @@ export class FacturasListComponent implements OnInit {
         return 'Facturas Financiadas';
       case 'rejected':
         return 'Facturas Rechazadas';
+      case 'expired':
+        return 'Facturas Caducadas';
       default:
         return 'Todas las Facturas';
     }
@@ -253,6 +278,8 @@ export class FacturasListComponent implements OnInit {
         return 'Facturas que han sido financiadas';
       case 'rejected':
         return 'Facturas que no fueron aprobadas';
+      case 'expired':
+        return 'Facturas que han superado su fecha de vencimiento';
       default:
         return 'Gestiona todas tus facturas desde aquí';
     }
@@ -268,6 +295,8 @@ export class FacturasListComponent implements OnInit {
         return 'No tienes facturas financiadas en este momento.';
       case 'rejected':
         return 'No tienes facturas rechazadas.';
+      case 'expired':
+        return 'No tienes facturas caducadas en este momento.';
       default:
         return 'Aún no has creado ninguna factura. ¡Comienza creando tu primera factura!';
     }
@@ -292,6 +321,8 @@ export class FacturasListComponent implements OnInit {
         return 'status-paid';
       case 'rejected':
         return 'status-rejected';
+      case 'expired':
+        return 'status-expired';
       default:
         return 'status-default';
     }
@@ -309,6 +340,8 @@ export class FacturasListComponent implements OnInit {
         return 'Pagada';
       case 'rejected':
         return 'Rechazada';
+      case 'expired':
+        return 'Caducada';
       default:
         return status;
     }
@@ -384,7 +417,39 @@ export class FacturasListComponent implements OnInit {
     this.selectedInvoiceNumber.set('');
   }
 
+  approveInvoice(id: number) {
+    this.invoiceService.approveInvoice(id).subscribe({
+      next: () => {
+        console.log('Factura aprobada exitosamente');
+        // Recargar la lista de facturas
+        this.loadFacturas();
+      },
+      error: (error) => {
+        console.error('Error al aprobar la factura:', error);
+        alert('Error al aprobar la factura. Por favor, inténtalo de nuevo.');
+      }
+    });
+  }
+
   goBack() {
-    this.closeModal.emit();
+    console.log('Botón Volver clickeado');
+    if (this.filterType === 'all') {
+      console.log('Redirigiendo a dashboard/empresa');
+      // Usar una combinación de técnicas para asegurar la navegación
+      const baseUrl = window.location.origin;
+      const dashboardUrl = `${baseUrl}/dashboard/empresa`;
+      
+      // Intentar con todas las técnicas disponibles
+      try {
+        this.router.navigateByUrl('/dashboard/empresa');
+        console.log('Navegación con router completada');
+      } catch (error) {
+        console.error('Error con router, usando window.location', error);
+        window.location.href = dashboardUrl;
+      }
+    } else {
+      console.log('Emitiendo closeModal');
+      this.closeModal.emit();
+    }
   }
 }
