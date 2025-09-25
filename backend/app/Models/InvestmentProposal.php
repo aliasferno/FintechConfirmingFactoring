@@ -171,12 +171,19 @@ class InvestmentProposal extends Model
      */
     public function calculateExpectedReturn(): float
     {
-        $principal = (float) $this->proposed_amount;
-        $rate = (float) $this->proposed_interest_rate;
-        $days = $this->proposed_term_days;
+        $invoice = $this->invoice;
+        if (!$invoice) return 0.0;
         
-        // Cálculo de interés simple anualizado
-        return $principal * ($rate / 100) * ($days / 365);
+        if ($this->factoring_commission && $this->advance_percentage) {
+            // Factoring: comisión sobre el monto de anticipo
+            $advanceAmount = $invoice->amount * ($this->advance_percentage / 100);
+            return $advanceAmount * ($this->factoring_commission / 100);
+        } elseif ($this->confirming_commission) {
+            // Confirming: comisión sobre el monto total
+            return $invoice->amount * ($this->confirming_commission / 100);
+        }
+        
+        return 0.0;
     }
 
     /**
@@ -216,7 +223,7 @@ class InvestmentProposal extends Model
      */
     public function markAsExpired(): bool
     {
-        if ($this->isExpired()) {
+        if (!$this->isExpired() && in_array($this->status, [self::STATUS_SENT, self::STATUS_PENDING])) {
             $this->status = self::STATUS_EXPIRED;
             return $this->save();
         }
@@ -228,23 +235,37 @@ class InvestmentProposal extends Model
      */
     public function createCounterOffer(array $counterTerms, string $response, int $respondedBy): self
     {
-        return self::create([
+        // Preparar datos base para la contraoferta
+        $counterOfferData = [
             'investor_id' => $this->investor_id,
             'invoice_id' => $this->invoice_id,
-            'proposed_amount' => $counterTerms['amount'] ?? $this->proposed_amount,
-            'proposed_interest_rate' => $counterTerms['interest_rate'] ?? $this->proposed_interest_rate,
-            'proposed_term_days' => $counterTerms['term_days'] ?? $this->proposed_term_days,
-            'proposed_discount_rate' => $counterTerms['discount_rate'] ?? $this->proposed_discount_rate,
-            'proposed_commission_rate' => $counterTerms['commission_rate'] ?? $this->proposed_commission_rate,
-            'negotiation_terms' => $counterTerms['negotiation_terms'] ?? null,
             'company_response' => $response,
-            'is_counter_offer' => true,
-            'parent_proposal_id' => $this->id,
             'responded_by' => $respondedBy,
             'responded_at' => now(),
-            'original_terms' => $this->original_terms,
-            'counter_offer_terms' => $counterTerms,
-        ]);
+            'status' => self::STATUS_PENDING,
+        ];
+
+        // Agregar campos específicos según el tipo de operación
+        if (isset($counterTerms['advance_percentage'])) {
+            $counterOfferData['advance_percentage'] = $counterTerms['advance_percentage'];
+        }
+        if (isset($counterTerms['factoring_commission'])) {
+            $counterOfferData['factoring_commission'] = $counterTerms['factoring_commission'];
+        }
+        if (isset($counterTerms['confirming_commission'])) {
+            $counterOfferData['confirming_commission'] = $counterTerms['confirming_commission'];
+        }
+        if (isset($counterTerms['payment_terms'])) {
+            $counterOfferData['payment_terms'] = $counterTerms['payment_terms'];
+        }
+        if (isset($counterTerms['risk_assessment'])) {
+            $counterOfferData['risk_assessment'] = $counterTerms['risk_assessment'];
+        }
+        if (isset($counterTerms['early_payment_discount'])) {
+            $counterOfferData['early_payment_discount'] = $counterTerms['early_payment_discount'];
+        }
+
+        return self::create($counterOfferData);
     }
 
     /**
@@ -307,6 +328,14 @@ class InvestmentProposal extends Model
      * Check if the proposal can be approved or rejected.
      */
     public function canBeEdited(): bool
+    {
+        return in_array($this->status, [self::STATUS_SENT, self::STATUS_PENDING]);
+    }
+
+    /**
+     * Check if the proposal can be approved or rejected.
+     */
+    public function canBeApprovedOrRejected(): bool
     {
         return in_array($this->status, [self::STATUS_SENT, self::STATUS_PENDING]);
     }

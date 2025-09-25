@@ -13,8 +13,19 @@ import { AuthService } from './services/auth.service';
     <div class="propuestas-recibidas-container">
       <!-- Header -->
       <div class="header">
-        <h1>Propuestas Recibidas</h1>
-        <p class="subtitle">Gestiona las propuestas de inversión recibidas para tus facturas</p>
+        <div class="header-content">
+          <button 
+            class="btn-back" 
+            (click)="goBack()"
+            title="Volver"
+          >
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div class="header-text">
+            <h1>Propuestas Recibidas</h1>
+            <p class="subtitle">Gestiona las propuestas de inversión recibidas para tus facturas</p>
+          </div>
+        </div>
       </div>
 
       <!-- Success Message -->
@@ -321,8 +332,40 @@ import { AuthService } from './services/auth.service';
     }
 
     .header {
-      text-align: center;
       margin-bottom: 2rem;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .btn-back {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 0.75rem;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 45px;
+      height: 45px;
+      font-size: 1.1rem;
+    }
+
+    .btn-back:hover {
+      background: #2980b9;
+      transform: translateX(-2px);
+    }
+
+    .header-text {
+      flex: 1;
+      text-align: center;
     }
 
     .header h1 {
@@ -1044,5 +1087,9 @@ export class PropuestasRecibidasComponent implements OnInit {
     }
     
     return 0;
+  }
+
+  goBack() {
+    this.router.navigate(['/dashboard']);
   }
 }

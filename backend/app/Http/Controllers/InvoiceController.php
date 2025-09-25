@@ -555,8 +555,8 @@ class InvoiceController extends Controller
         // Add operation-specific validation rules
         if ($request->operation_type === 'factoring') {
             $rules = array_merge($rules, [
-                'advance_percentage' => 'required|numeric|min:0|max:100',
-                'commission_rate' => 'required|numeric|min:0|max:1',
+                'advance_percentage' => 'required|numeric|min:10|max:90',
+                'commission_rate' => 'required|numeric|min:0.1|max:10',
                 'expected_collection_date' => 'required|date|after:due_date',
                 'credit_risk_assessment' => 'required|in:low,medium,high',
             ]);

@@ -10,6 +10,9 @@
 7. [Validaciones y Controles](#validaciones-y-controles)
 8. [Casos de Uso Prácticos](#casos-de-uso-prácticos)
 
+## Documentación Relacionada
+- **[Reglas de Validación de Facturas](./REGLAS_VALIDACION_FACTURAS.md)** - Documentación detallada de todas las reglas de validación implementadas en el sistema
+
 ## Introducción
 
 Este documento define los procesos diferenciados de registro de facturas según el tipo de operación financiera (factoring o confirming) que realizará la empresa o PYME. Cada proceso tiene características específicas que reflejan la naturaleza y objetivos de cada instrumento financiero.
@@ -358,6 +361,17 @@ POST /api/invoices/confirming/conformity-check
 ```
 
 ## Validaciones y Controles
+
+> **📋 Documentación Detallada de Validaciones**
+> 
+> Para información completa y actualizada sobre las reglas de validación implementadas en el sistema, consulte el documento específico:
+> **[REGLAS_VALIDACION_FACTURAS.md](./REGLAS_VALIDACION_FACTURAS.md)**
+> 
+> Este documento incluye:
+> - Reglas de validación detalladas para factoring y confirming
+> - Ejemplos prácticos con casos válidos e inválidos
+> - Códigos de error y mensajes específicos
+> - Validaciones de archivos y formatos permitidos
 
 ### Reglas de Negocio por Tipo
 

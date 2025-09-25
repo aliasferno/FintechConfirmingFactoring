@@ -428,16 +428,35 @@ class InvestmentProposalController extends Controller
                     'responded_at' => now(),
                 ]);
                 
-                // Crear la inversión basada en los términos propuestos
+                // Calcular valores para la inversión basados en el tipo de operación
+                $invoice = $proposal->invoice;
+                $amount = $invoice->amount;
+                $expectedReturn = 0;
+                $returnRate = 0;
+                $term = now()->diffInDays($invoice->due_date);
+                
+                if ($proposal->factoring_commission && $proposal->advance_percentage) {
+                    // Factoring: monto es el anticipo, retorno es la comisión
+                    $amount = $invoice->amount * ($proposal->advance_percentage / 100);
+                    $expectedReturn = $amount * ($proposal->factoring_commission / 100);
+                    $returnRate = $proposal->factoring_commission;
+                } elseif ($proposal->confirming_commission) {
+                    // Confirming: monto es el total, retorno es la comisión
+                    $amount = $invoice->amount;
+                    $expectedReturn = $amount * ($proposal->confirming_commission / 100);
+                    $returnRate = $proposal->confirming_commission;
+                }
+                
+                // Crear la inversión
                 $investment = Investment::create([
                     'user_id' => $proposal->investor_id,
                     'invoice_id' => $proposal->invoice_id,
-                    'amount' => $proposal->proposed_amount,
-                    'expected_return' => $proposal->calculateExpectedReturn(),
+                    'amount' => $amount,
+                    'expected_return' => $expectedReturn,
                     'investment_date' => now(),
-                    'maturity_date' => now()->addDays($proposal->proposed_term_days),
+                    'maturity_date' => $invoice->due_date,
                     'status' => Investment::STATUS_ACTIVE,
-                    'return_rate' => $proposal->proposed_interest_rate,
+                    'return_rate' => $returnRate,
                 ]);
                 
                 // Actualizar estado de la factura
@@ -515,7 +534,14 @@ class InvestmentProposalController extends Controller
      */
     public function markExpired()
     {
-        $expiredCount = InvestmentProposal::expired()->update([
+        // Buscar propuestas que necesitan ser marcadas como expiradas
+        // (propuestas enviadas o pendientes que han pasado su tiempo límite)
+        $expiredCount = InvestmentProposal::whereIn('status', [
+            InvestmentProposal::STATUS_SENT, 
+            InvestmentProposal::STATUS_PENDING
+        ])
+        ->where('sent_at', '<', now()->subDays(30)) // 30 días después de enviadas
+        ->update([
             'status' => InvestmentProposal::STATUS_EXPIRED
         ]);
         

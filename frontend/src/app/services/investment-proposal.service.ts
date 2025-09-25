@@ -221,8 +221,11 @@ export class InvestmentProposalService {
    */
   approveProposal(proposalId: number, approvalNotes?: string): Observable<ProposalResponse> {
     return this.http.post<ProposalResponse>(
-      `${this.apiUrl}/investment-proposals/${proposalId}/approve`,
-      { approval_notes: approvalNotes },
+      `${this.apiUrl}/investment-proposals/${proposalId}/respond`,
+      { 
+        action: 'approve',
+        response_message: approvalNotes || 'Propuesta aprobada'
+      },
       { headers: this.getHeaders() }
     );
   }
@@ -232,8 +235,11 @@ export class InvestmentProposalService {
    */
   rejectProposal(proposalId: number, rejectionReason: string): Observable<ProposalResponse> {
     return this.http.post<ProposalResponse>(
-      `${this.apiUrl}/investment-proposals/${proposalId}/reject`,
-      { rejection_reason: rejectionReason },
+      `${this.apiUrl}/investment-proposals/${proposalId}/respond`,
+      { 
+        action: 'reject',
+        response_message: rejectionReason
+      },
       { headers: this.getHeaders() }
     );
   }
