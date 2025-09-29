@@ -43,6 +43,12 @@ class Invoice extends Model
         'payment_terms',
         'early_payment_discount',
         'confirmation_deadline',
+        'confirming_type',
+        'confirming_commission',
+        'guarantee_type',
+        'payment_guarantee',
+        'supplier_notification',
+        'advance_request',
     ];
 
     /**
@@ -64,6 +70,9 @@ class Invoice extends Model
         // Campos específicos para Confirming
         'early_payment_discount' => 'decimal:2',
         'confirmation_deadline' => 'date',
+        'confirming_commission' => 'decimal:2',
+        'supplier_notification' => 'boolean',
+        'advance_request' => 'boolean',
     ];
 
     /**

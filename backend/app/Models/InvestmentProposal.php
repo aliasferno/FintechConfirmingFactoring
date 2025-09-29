@@ -20,6 +20,7 @@ class InvestmentProposal extends Model
     protected $fillable = [
         'investor_id',
         'invoice_id',
+        'amount',
         // Campos específicos de factoring
         'advance_percentage',
         'factoring_commission',

@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('permissions', function (Blueprint $table) {
-            $table->string('display_name')->after('name');
-            $table->string('resource')->nullable()->after('description');
+        Schema::table('investment_proposals', function (Blueprint $table) {
+            $table->decimal('amount', 15, 2)->after('invoice_id')->nullable();
         });
     }
 
@@ -22,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('permissions', function (Blueprint $table) {
-            $table->dropColumn(['display_name', 'resource']);
+        Schema::table('investment_proposals', function (Blueprint $table) {
+            $table->dropColumn('amount');
         });
     }
 };

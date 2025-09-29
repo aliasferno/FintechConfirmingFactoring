@@ -3,11 +3,14 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from './services/auth.service';
 import { InvestmentService } from './services/investment.service';
+import { InvoiceService } from './services/invoice.service';
+import { ModalCondicionesInversionComponent } from './components/modal-condiciones-inversion/modal-condiciones-inversion.component';
+import { Invoice } from './models/invoice.model';
 
 @Component({
   selector: 'app-oportunidad-detalle',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ModalCondicionesInversionComponent],
   template: `
     <div class="oportunidad-detalle-container">
       <!-- Header -->
@@ -80,11 +83,11 @@ import { InvestmentService } from './services/investment.service';
               </div>
               <div class="summary-item">
                 <span class="summary-label">Tasa de Interés</span>
-                <span class="summary-value rate">{{ formatPercentage(factura()!.interest_rate || 0) }}</span>
+                <span class="summary-value rate">{{ formatPercentage(factura()!.interest_rate || factura()!.interestRate || 0) }}</span>
               </div>
               <div class="summary-item">
                 <span class="summary-label">Plazo</span>
-                <span class="summary-value">{{ calculateTerm(factura()!.due_date) }} días</span>
+                <span class="summary-value">{{ calculateTerm(factura()!.due_date || factura()!.dueDate) }} días</span>
               </div>
               <div class="summary-item highlight">
                 <span class="summary-label">Rendimiento Esperado</span>
@@ -104,21 +107,33 @@ import { InvestmentService } from './services/investment.service';
                 Información de la Empresa
               </h3>
               <div class="detail-content">
+              @if (factura()!.companyName) {
                 <div class="detail-row">
-                  <span class="detail-label">Cliente:</span>
-                  <span class="detail-value">{{ factura()!.client_name }}</span>
+                  <span class="detail-label">Empresa:</span>
+                  <span class="detail-value">{{ factura()!.companyName }}</span>
                 </div>
-                <div class="detail-row">
-                  <span class="detail-label">RUT/NIT:</span>
-                  <span class="detail-value">{{ factura()!.client_tax_id }}</span>
-                </div>
-                @if (factura()!.operation_type === 'confirming') {
-                  <div class="detail-row">
-                    <span class="detail-label">Proveedor:</span>
-                    <span class="detail-value">{{ factura()!.supplier_name || 'N/A' }}</span>
-                  </div>
-                }
+              }
+              <div class="detail-row">
+                <span class="detail-label">Cliente:</span>
+                <span class="detail-value">{{ factura()!.client_name }}</span>
               </div>
+              <div class="detail-row">
+                <span class="detail-label">RUT/NIT:</span>
+                <span class="detail-value">{{ factura()!.client_tax_id }}</span>
+              </div>
+              @if (factura()!.operation_type === 'confirming') {
+                <div class="detail-row">
+                  <span class="detail-label">Proveedor:</span>
+                  <span class="detail-value">{{ factura()!.supplier_name || 'N/A' }}</span>
+                </div>
+              }
+              @if (factura()!.invoice_number || factura()!.facturaNumber) {
+                <div class="detail-row">
+                  <span class="detail-label">Número de Factura:</span>
+                  <span class="detail-value">{{ factura()!.invoice_number || factura()!.facturaNumber }}</span>
+                </div>
+              }
+            </div>
             </div>
 
             <!-- Risk Assessment -->
@@ -135,6 +150,14 @@ import { InvestmentService } from './services/investment.service';
                     <span class="detail-label">Nivel de Riesgo:</span>
                     <span class="detail-value risk-level" [class]="getRiskLevelClass(factura()!.credit_risk_assessment!)">
                       {{ getCreditRiskText(factura()!.credit_risk_assessment!) }}
+                    </span>
+                  </div>
+                }
+                @if (factura()!.riskLevel) {
+                  <div class="detail-row">
+                    <span class="detail-label">Nivel de Riesgo:</span>
+                    <span class="detail-value risk-level" [class]="getRiskLevelClass(factura()!.riskLevel!)">
+                      {{ getCreditRiskText(factura()!.riskLevel!) }}
                     </span>
                   </div>
                 }
@@ -166,28 +189,52 @@ import { InvestmentService } from './services/investment.service';
                   <span class="detail-label">Monto Original:</span>
                   <span class="detail-value amount">{{ formatCurrency(factura()!.amount) }}</span>
                 </div>
-                @if (factura()!.net_amount) {
+                <div class="detail-row">
+                  <span class="detail-label">Monto Neto:</span>
+                  <span class="detail-value net-amount">{{ formatCurrency(factura()!.net_amount || factura()!.amount) }}</span>
+                </div>
+                @if (factura()!.operation_type === 'factoring') {
                   <div class="detail-row">
-                    <span class="detail-label">Monto Neto:</span>
-                    <span class="detail-value net-amount">{{ formatCurrency(factura()!.net_amount) }}</span>
+                    <span class="detail-label">Porcentaje de Anticipo:</span>
+                    <span class="detail-value">{{ factura()!.advance_percentage || 80 }}%</span>
                   </div>
                 }
-                @if (factura()!.commission_rate) {
+                @if (factura()!.operation_type === 'confirming') {
+                  <div class="detail-row">
+                    <span class="detail-label">Solicitud de Anticipo:</span>
+                    <span class="detail-value">{{ (factura()!.advance_request || factura()!.advanceRequest) ? 'Sí' : 'No' }}</span>
+                  </div>
+                }
+                @if (factura()!.operation_type === 'confirming') {
+                  <div class="detail-row">
+                    <span class="detail-label">Comisión de Confirming:</span>
+                    <span class="detail-value">{{ (factura()!.confirming_commission || factura()!.confirmingCommission || 0) }}%</span>
+                  </div>
+                }
+                @if (factura()!.operation_type === 'factoring') {
                   <div class="detail-row">
                     <span class="detail-label">Comisión:</span>
-                    <span class="detail-value">{{ factura()!.commission_rate }}%</span>
+                    <span class="detail-value">{{ formatPercentage(factura()!.commission_rate || 0) }}</span>
+                  </div>
+                }
+                @if (factura()!.operation_type === 'confirming' && (factura()!.advance_request || factura()!.advanceRequest)) {
+                  <div class="detail-row">
+                    <span class="detail-label">Descuento por Pago Anticipado:</span>
+                    <span class="detail-value">{{ (factura()!.early_payment_discount || factura()!.earlyPaymentDiscount || 0) }}%</span>
                   </div>
                 }
                 <div class="detail-row">
                   <span class="detail-label">Fecha de Vencimiento:</span>
                   <span class="detail-value">{{ formatDate(factura()!.due_date) }}</span>
                 </div>
-                @if (factura()!.expected_collection_date) {
-                  <div class="detail-row">
-                    <span class="detail-label">Fecha Esperada de Cobro:</span>
-                    <span class="detail-value">{{ formatDate(factura()!.expected_collection_date!) }}</span>
-                  </div>
-                }
+                <div class="detail-row">
+                  <span class="detail-label">Fecha Esperada de Cobro:</span>
+                  <span class="detail-value">{{ factura()!.expected_collection_date ? formatDate(factura()!.expected_collection_date) : 'No especificada' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Fecha de Emisión:</span>
+                  <span class="detail-value">{{ factura()!.issue_date ? formatDate(factura()!.issue_date) : 'No especificada' }}</span>
+                </div>
               </div>
             </div>
 
@@ -237,7 +284,7 @@ import { InvestmentService } from './services/investment.service';
           <div class="investment-action">
             <div class="action-content">
               <h3>¿Listo para invertir?</h3>
-              <p>Esta oportunidad de inversión te permitirá obtener un rendimiento del {{ formatPercentage(factura()!.interest_rate || 0) }} en {{ calculateTerm(factura()!.due_date) }} días.</p>
+              <p>Esta oportunidad de inversión te permitirá obtener un rendimiento del {{ formatPercentage(factura()!.interest_rate || factura()!.interestRate || 0) }} en {{ calculateTerm(factura()!.due_date || factura()!.dueDate) }} días.</p>
               <button class="btn-invest-large" (click)="investInOpportunity()">
                 <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -249,20 +296,36 @@ import { InvestmentService } from './services/investment.service';
         </div>
       }
     </div>
+
+    <!-- Modal de Condiciones de Inversión -->
+    @if (showCondicionesModal() && selectedInvoice()) {
+      <app-modal-condiciones-inversion
+        [isVisible]="showCondicionesModal()"
+        [invoice]="selectedInvoice()!"
+        (acceptConditions)="onAcceptConditions()"
+        (modifyConditions)="onModifyConditions($event)"
+        (closeModal)="closeModal()">
+      </app-modal-condiciones-inversion>
+    }
   `,
   styleUrls: ['./oportunidad-detalle.component.css']
 })
 export class OportunidadDetalleComponent implements OnInit {
-  factura = signal<any | null>(null);
+  factura = signal<any>(null);
   isLoading = signal(true);
   error = signal('');
   oportunidadId: string = '';
+
+  // Modal state
+  showCondicionesModal = signal(false);
+  selectedInvoice = signal<Invoice | null>(null);
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private authService: AuthService,
-    private investmentService: InvestmentService
+    private investmentService: InvestmentService,
+    private invoiceService: InvoiceService
   ) {}
 
   ngOnInit() {
@@ -297,8 +360,34 @@ export class OportunidadDetalleComponent implements OnInit {
   }
 
   investInOpportunity() {
-    // Navegar a crear propuesta de inversión
-    this.router.navigate(['/crear-propuesta', this.oportunidadId]);
+    console.log('🔵 investInOpportunity llamado con ID:', this.oportunidadId);
+    console.log('🔵 Tipo de oportunidadId:', typeof this.oportunidadId);
+    console.log('🔵 Estado inicial showCondicionesModal:', this.showCondicionesModal());
+    console.log('🔵 Estado inicial selectedInvoice:', this.selectedInvoice());
+    
+    // Buscar la factura completa por ID usando el endpoint público
+    console.log('🔵 Llamando a invoiceService.getPublicInvoice...');
+    this.invoiceService.getPublicInvoice(parseInt(this.oportunidadId)).subscribe({
+      next: (invoice: Invoice) => {
+        console.log('✅ Factura obtenida desde endpoint público:', invoice);
+        this.selectedInvoice.set(invoice);
+        console.log('✅ selectedInvoice actualizado:', this.selectedInvoice());
+        this.showCondicionesModal.set(true);
+        console.log('✅ showCondicionesModal establecido a true:', this.showCondicionesModal());
+        
+        // Verificar después de un pequeño delay
+        setTimeout(() => {
+          console.log('🔍 Verificación después de 100ms:');
+          console.log('🔍 showCondicionesModal:', this.showCondicionesModal());
+          console.log('🔍 selectedInvoice:', this.selectedInvoice());
+          console.log('🔍 Condición del @if:', this.showCondicionesModal() && this.selectedInvoice());
+        }, 100);
+      },
+      error: (error) => {
+        console.error('❌ Error al obtener la factura:', error);
+        this.error.set('Error al cargar la información de la factura');
+      }
+    });
   }
 
   // Utility methods
@@ -306,7 +395,8 @@ export class OportunidadDetalleComponent implements OnInit {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount);
   }
 
@@ -316,14 +406,17 @@ export class OportunidadDetalleComponent implements OnInit {
 
   formatDate(dateString: string): string {
     const date = new Date(dateString);
+    // Usar UTC para evitar problemas de zona horaria
     return date.toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     });
   }
 
   calculateTerm(dueDate: string): number {
+    if (!dueDate) return 0;
     const due = new Date(dueDate);
     const now = new Date();
     const diffTime = due.getTime() - now.getTime();
@@ -332,13 +425,41 @@ export class OportunidadDetalleComponent implements OnInit {
 
   calculateExpectedReturn(): number {
     const factura = this.factura();
-    if (!factura || !factura.interest_rate) return 0;
+    if (!factura) return 0;
     
-    const principal = factura.amount;
-    const rate = factura.interest_rate / 100;
-    const term = this.calculateTerm(factura.due_date) / 365;
-    
-    return principal * rate * term;
+    // Usar la misma lógica que el dashboard y el modal para consistencia
+    if (factura.operation_type === 'factoring') {
+      // Para factoring: comisión sobre el monto de adelanto
+      const advancePercentage = factura.advance_percentage || 80; // 80% por defecto
+      const advanceAmount = factura.amount * (advancePercentage / 100);
+      const commissionRate = factura.commission_rate || 0;
+      // commission_rate ya está en decimal, convertir a decimal si viene como porcentaje
+      const rate = commissionRate > 1 ? commissionRate / 100 : commissionRate;
+      return advanceAmount * rate;
+    } else if (factura.operation_type === 'confirming') {
+      // Para confirming: usar confirming_commission si está disponible, sino usar commission_rate como fallback
+      const commissionRate = factura.confirming_commission || factura.commission_rate || 0;
+      // Convertir a decimal si viene como porcentaje
+      const rate = commissionRate > 1 ? commissionRate / 100 : commissionRate;
+      let totalReturn = factura.amount * rate;
+      
+      // Si advance_request es true, agregar el descuento por pago anticipado
+      if (factura.advance_request === true && factura.early_payment_discount) {
+        const earlyPaymentDiscount = factura.early_payment_discount > 1 ? 
+          factura.early_payment_discount / 100 : factura.early_payment_discount;
+        const earlyPaymentBonus = factura.amount * earlyPaymentDiscount;
+        totalReturn += earlyPaymentBonus;
+      }
+      
+      return totalReturn;
+    } else {
+      // Fallback al cálculo anterior para compatibilidad
+      const interestRate = factura.interest_rate || factura.interestRate || 0;
+      const rate = interestRate > 1 ? interestRate / 100 : interestRate;
+      const dueDate = factura.due_date || factura.dueDate;
+      const term = this.calculateTerm(dueDate) / 365; // Convertir días a años
+      return factura.amount * rate * term;
+    }
   }
 
   getDaysUntilDue(dueDate: string): number {
@@ -383,8 +504,94 @@ export class OportunidadDetalleComponent implements OnInit {
       'pending': 'Pendiente',
       'approved': 'Aprobada',
       'rejected': 'Rechazada',
-      'paid': 'Pagada'
+      'active': 'Activa',
+      'completed': 'Completada'
     };
-    return statusTexts[status] || status;
+    return statusTexts[status.toLowerCase()] || status;
+  }
+
+  // Modal methods
+  closeModal() {
+    this.showCondicionesModal.set(false);
+    this.selectedInvoice.set(null);
+  }
+
+  onAcceptConditions() {
+    const invoice = this.selectedInvoice();
+    if (invoice) {
+      // Crear inversión directa con las condiciones originales
+      this.createDirectInvestment(invoice);
+    }
+    this.closeModal();
+  }
+
+  onModifyConditions(modifications: any) {
+    const invoice = this.selectedInvoice();
+    if (invoice) {
+      // Navegar a crear propuesta con las modificaciones
+      this.router.navigate(['/crear-propuesta', invoice.id], {
+        state: { modifications: modifications }
+      });
+    }
+    this.closeModal();
+  }
+
+  createDirectInvestment(invoice: Invoice) {
+    const investmentData = {
+      invoice_id: invoice.id,
+      amount: invoice.amount,
+      accepted_conditions: true,
+      investment_type: 'direct'
+    };
+
+    this.investmentService.createInvestment(investmentData).subscribe({
+      next: (response: any) => {
+        console.log('✅ Inversión creada exitosamente:', response);
+        
+        // *** NUEVO: Mostrar información de pagos si es confirming con adelanto ***
+        if (response.payments && response.payments.length > 0) {
+          console.log('Pagos creados para operación de confirming:', response.payments);
+          
+          // Mostrar mensaje específico para confirming con información de pagos
+          const paymentInfo = response.payments.map((payment: any) => {
+            const typeLabel = payment.type === 'supplier_payment' ? 'Pago al proveedor' : 'Cobro a la empresa';
+            const statusLabel = payment.status === 'pending' ? 'Pendiente' : payment.status;
+            return `${typeLabel}: $${payment.amount.toLocaleString()} (${statusLabel})`;
+          }).join(', ');
+          
+          this.router.navigate(['/dashboard/inversor'], { 
+            queryParams: { 
+              message: `Inversión de confirming creada exitosamente. ${paymentInfo}`,
+              type: 'confirming_success'
+            }
+          });
+        } else {
+          // Mensaje estándar para inversiones directas
+          this.router.navigate(['/dashboard/inversor'], { 
+            queryParams: { message: 'Inversión creada exitosamente' }
+          });
+        }
+      },
+      error: (error: any) => {
+        console.error('❌ Error al crear la inversión:', error);
+        
+        // Mostrar mensaje de error más específico
+        let errorMessage = 'Error al crear la inversión. Por favor, intenta de nuevo.';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        }
+        
+        this.error.set(errorMessage);
+      }
+    });
+  }
+
+  extractOriginalConditions(invoice: Invoice): any {
+    return {
+      amount: invoice.amount,
+      discount_rate: invoice.discount_rate || 0,
+      due_date: invoice.due_date,
+      // Agregar más condiciones según sea necesario
+    };
   }
 }

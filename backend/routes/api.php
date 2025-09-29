@@ -88,10 +88,14 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Investment routes
     Route::get('/investments/investor-stats', [InvestmentController::class, 'investorStats']);
+    Route::get('/investments/company-financing-stats', [InvestmentController::class, 'companyFinancingStats']);
+    Route::get('/investments/company-financing-history', [InvestmentController::class, 'companyFinancingHistory']);
+    Route::get('/investments/company-financing-activity', [InvestmentController::class, 'companyFinancingActivity']);
     Route::get('/investments/statistics', [InvestmentController::class, 'statistics']);
     Route::get('/investments/opportunities', [InvestmentController::class, 'opportunities']);
     Route::get('/investments/opportunities/{id}', [InvestmentController::class, 'getOpportunity']);
     Route::put('/investments/{id}/process-return', [InvestmentController::class, 'processReturn']);
+    Route::put('/investments/{id}/cancel', [InvestmentController::class, 'cancel']);
     Route::apiResource('investments', InvestmentController::class);
     
     // Investment Proposal routes

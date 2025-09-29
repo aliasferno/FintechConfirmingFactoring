@@ -1,9 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { InvoiceService, Invoice } from './services/invoice.service';
-import { AuthService } from './services/auth.service';
+import { InvoiceService } from './services/invoice.service';
 import { InvestmentService } from './services/investment.service';
+import { ModalCondicionesInversionComponent } from './components/modal-condiciones-inversion/modal-condiciones-inversion.component';
+import { Invoice } from './models/invoice.model';
+import { ReactiveFormsModule } from '@angular/forms';
 
 interface InvestmentOpportunity {
   id: string;
@@ -15,12 +17,17 @@ interface InvestmentOpportunity {
   riskLevel: 'bajo' | 'medio' | 'alto';
   dueDate: Date;
   operationType: 'factoring' | 'confirming';
+  supplierName?: string; // Nombre del proveedor para facturas de confirming
+  advancePercentage?: number | null; // Porcentaje de adelanto para factoring
+  advanceRequest?: boolean; // Si se solicita pago anticipado
+  earlyPaymentDiscount?: number | null; // Porcentaje de descuento por pago anticipado
+  confirmingCommission?: number | null; // Comisión de confirming
 }
 
 @Component({
   selector: 'app-oportunidades-inversion',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ModalCondicionesInversionComponent],
   template: `
     <div class="opportunities-container">
       <header class="page-header">
@@ -93,14 +100,31 @@ interface InvestmentOpportunity {
                   <span class="detail-label">Factura:</span>
                   <span class="detail-value">{{ opportunity.facturaNumber }}</span>
                 </div>
+                @if (opportunity.operationType === 'confirming' && opportunity.supplierName) {
+                  <div class="detail-item">
+                    <span class="detail-label">Proveedor:</span>
+                    <span class="detail-value">{{ opportunity.supplierName }}</span>
+                  </div>
+                }
                 <div class="detail-item">
                   <span class="detail-label">Monto:</span>
                   <span class="detail-value amount">{{ formatCurrency(opportunity.amount) }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Tasa:</span>
-                  <span class="detail-value rate">{{ formatPercentage(opportunity.interestRate) }}</span>
+                  @if (opportunity.operationType === 'confirming') {
+                    <span class="detail-label">Comisión de Confirming:</span>
+                    <span class="detail-value rate">{{ formatPercentage((opportunity.confirmingCommission || 0) / 100) }}</span>
+                  } @else {
+                    <span class="detail-label">Tasa:</span>
+                    <span class="detail-value rate">{{ formatPercentage(opportunity.interestRate) }}</span>
+                  }
                 </div>
+                @if (opportunity.earlyPaymentDiscount && opportunity.advanceRequest) {
+                  <div class="detail-item">
+                    <span class="detail-label">Descuento por Pago Anticipado:</span>
+                    <span class="detail-value rate">{{ formatPercentage(opportunity.earlyPaymentDiscount / 100) }}</span>
+                  </div>
+                }
                 <div class="detail-item">
                   <span class="detail-label">Plazo:</span>
                   <span class="detail-value">{{ opportunity.term }} días</span>
@@ -110,9 +134,9 @@ interface InvestmentOpportunity {
                   <span class="detail-value">{{ formatDate(opportunity.dueDate) }}</span>
                 </div>
                 <div class="detail-item expected-return">
-                  <span class="detail-label">Rendimiento esperado:</span>
-                  <span class="detail-value return">{{ formatCurrency(calculateExpectedReturn(opportunity.amount, opportunity.interestRate, opportunity.term)) }}</span>
-                </div>
+                   <span class="detail-label">Rendimiento esperado:</span>
+                   <span class="detail-value return">{{ formatCurrency(calculateExpectedReturn(opportunity.amount, opportunity.interestRate, opportunity.term, opportunity.operationType, opportunity.advancePercentage || undefined, opportunity.advanceRequest, opportunity.confirmingCommission || undefined, opportunity.earlyPaymentDiscount || undefined)) }}</span>
+                 </div>
               </div>
               <div class="button-group">
                 <button class="detail-button" (click)="viewOpportunityDetail(opportunity.id)">
@@ -138,6 +162,17 @@ interface InvestmentOpportunity {
         </div>
       }
     </div>
+
+    <!-- Modal de Condiciones de Inversión -->
+    @if (showCondicionesModal() && selectedInvoice()) {
+      <app-modal-condiciones-inversion
+        [isVisible]="showCondicionesModal()"
+        [invoice]="selectedInvoice()!"
+        (acceptConditions)="onAcceptConditions()"
+        (modifyConditions)="onModifyConditions($event)"
+        (cancel)="onCancelModal()">
+      </app-modal-condiciones-inversion>
+    }
   `,
   styles: [`
     .opportunities-container {
@@ -507,9 +542,12 @@ export class OportunidadesInversionComponent implements OnInit {
   isLoading = signal(true);
   error = signal('');
 
+  // Modal state
+  showCondicionesModal = signal(false);
+  selectedInvoice = signal<Invoice | null>(null);
+
   constructor(
     private router: Router,
-    private authService: AuthService,
     private invoiceService: InvoiceService,
     private investmentService: InvestmentService
   ) {}
@@ -551,7 +589,12 @@ export class OportunidadesInversionComponent implements OnInit {
             term: this.calculateTermInDays(new Date(invoice.due_date)),
             riskLevel: this.mapRiskLevel(invoice.risk_score || 50),
             dueDate: new Date(invoice.due_date),
-            operationType: invoice.operation_type as 'factoring' | 'confirming'
+            operationType: invoice.operation_type as 'factoring' | 'confirming',
+            supplierName: invoice.supplier_name || undefined, // Añadir nombre del proveedor para confirming
+            advancePercentage: invoice.advance_percentage || null, // Añadir porcentaje de adelanto para factoring
+            advanceRequest: invoice.advance_request === true, // Convertir a boolean
+            earlyPaymentDiscount: invoice.early_payment_discount ? parseFloat(invoice.early_payment_discount.toString()) : null, // Añadir descuento por pago anticipado
+            confirmingCommission: invoice.confirming_commission ? parseFloat(invoice.confirming_commission.toString()) : null // Añadir comisión de confirming
           };
         });
 
@@ -561,8 +604,8 @@ export class OportunidadesInversionComponent implements OnInit {
         this.applyFilters();
         this.isLoading.set(false);
       },
-      error: (error) => {
-        console.error('Error al cargar oportunidades de inversión:', error);
+      error: (error: any) => {
+        console.error('Error al cargar oportunidades:', error);
         this.error.set('Error al cargar las oportunidades de inversión');
         this.isLoading.set(false);
       }
@@ -618,9 +661,29 @@ export class OportunidadesInversionComponent implements OnInit {
     }
   }
 
-  calculateExpectedReturn(amount: number, interestRate: number, term: number): number {
-    // Cálculo simple: monto * tasa * (días / 365)
-    return amount * (interestRate / 100) * (term / 365);
+  calculateExpectedReturn(amount: number, interestRate: number, term: number, operationType?: 'factoring' | 'confirming', advancePercentage?: number, advanceRequest?: boolean, confirmingCommission?: number, earlyPaymentDiscount?: number): number {
+    // Usar la misma lógica que el modal para consistencia
+    if (operationType === 'factoring') {
+      // Para factoring: comisión sobre el monto de adelanto
+      const advanceAmount = amount * ((advancePercentage || 80) / 100); // 80% por defecto
+      return advanceAmount * interestRate; // interestRate ya está en decimal
+    } else if (operationType === 'confirming') {
+      // Para confirming: usar confirming_commission si está disponible, sino usar interestRate como fallback
+      const commissionRate = confirmingCommission !== undefined ? confirmingCommission : (interestRate * 100);
+      // confirming_commission ya viene como porcentaje, no necesita conversión adicional
+      let totalReturn = amount * (commissionRate / 100);
+      
+      // Si advance_request es true, agregar el descuento por pago anticipado
+      if (advanceRequest && earlyPaymentDiscount) {
+        const earlyPaymentBonus = amount * (earlyPaymentDiscount / 100); // earlyPaymentDiscount está en porcentaje
+        totalReturn += earlyPaymentBonus;
+      }
+      
+      return totalReturn;
+    } else {
+      // Fallback al cálculo anterior para compatibilidad
+      return amount * interestRate * (term / 365);
+    }
   }
 
   formatCurrency(value: number): string {
@@ -655,8 +718,159 @@ export class OportunidadesInversionComponent implements OnInit {
   }
 
   investInOpportunity(opportunityId: string) {
-    // Navegar a crear propuesta de inversión con el ID de la oportunidad
-    this.router.navigate(['/crear-propuesta', opportunityId]);
+    console.log('🔵 investInOpportunity llamado con ID:', opportunityId);
+    console.log('🔵 Tipo de opportunityId:', typeof opportunityId);
+    console.log('🔵 Estado inicial showCondicionesModal:', this.showCondicionesModal());
+    console.log('🔵 Estado inicial selectedInvoice:', this.selectedInvoice());
+    
+    // Buscar la factura completa por ID usando el endpoint público
+    console.log('🔵 Llamando a invoiceService.getPublicInvoice...');
+    this.invoiceService.getPublicInvoice(parseInt(opportunityId)).subscribe({
+      next: (invoice: Invoice) => {
+        console.log('✅ Factura obtenida desde endpoint público:', invoice);
+        this.selectedInvoice.set(invoice);
+        console.log('✅ selectedInvoice actualizado:', this.selectedInvoice());
+        this.showCondicionesModal.set(true);
+        console.log('✅ showCondicionesModal establecido a true:', this.showCondicionesModal());
+        
+        // Verificar después de un pequeño delay
+        setTimeout(() => {
+          console.log('🔍 Verificación después de 100ms:');
+          console.log('🔍 showCondicionesModal:', this.showCondicionesModal());
+          console.log('🔍 selectedInvoice:', this.selectedInvoice());
+          console.log('🔍 Condición del @if:', this.showCondicionesModal() && this.selectedInvoice());
+          
+          // Verificar si el elemento del modal existe en el DOM
+          const modalElement = document.querySelector('app-modal-condiciones-inversion');
+          console.log('🔍 Elemento modal en DOM:', modalElement);
+          
+          if (modalElement) {
+            const modalOverlay = modalElement.querySelector('.modal-overlay');
+            console.log('🔍 Modal overlay encontrado:', modalOverlay);
+            if (modalOverlay) {
+              const computedStyle = window.getComputedStyle(modalOverlay);
+              console.log('🔍 Display del modal:', computedStyle.display);
+              console.log('🔍 Visibility del modal:', computedStyle.visibility);
+              console.log('🔍 Z-index del modal:', computedStyle.zIndex);
+              console.log('🔍 Position del modal:', computedStyle.position);
+            }
+          } else {
+            console.log('❌ No se encontró el elemento modal en el DOM');
+          }
+        }, 100);
+      },
+      error: (error: any) => {
+        console.error('❌ Error al obtener detalles de la factura:', error);
+        // Fallback: navegar directamente a crear propuesta
+        this.router.navigate(['/crear-propuesta', opportunityId]);
+      }
+    });
+  }
+
+  onAcceptConditions() {
+    const invoice = this.selectedInvoice();
+    if (invoice) {
+      // Crear inversión directa con las condiciones originales
+      this.createDirectInvestment(invoice);
+    }
+    this.closeModal();
+  }
+
+  onModifyConditions(modifications: any) {
+    const invoice = this.selectedInvoice();
+    if (invoice) {
+      // Navegar a crear propuesta con las modificaciones
+      this.router.navigate(['/crear-propuesta', invoice.id], {
+        state: { modifications: modifications }
+      });
+    }
+    this.closeModal();
+  }
+
+  onCancelModal() {
+    this.closeModal();
+  }
+
+  private closeModal() {
+    this.showCondicionesModal.set(false);
+    this.selectedInvoice.set(null);
+  }
+
+  private createDirectInvestment(invoice: Invoice) {
+    // Implementar lógica para crear inversión directa
+    console.log('Creando inversión directa para factura:', invoice.id);
+    
+    const investmentData = {
+      invoice_id: invoice.id,
+      amount: invoice.amount,
+      accepted_conditions: true,
+      investment_type: 'direct'
+    };
+
+    this.investmentService.createInvestment(investmentData).subscribe({
+      next: (response: any) => {
+        console.log('Inversión creada exitosamente:', response);
+        
+        // *** NUEVO: Mostrar información de pagos si es confirming con adelanto ***
+        if (response.payments && response.payments.length > 0) {
+          console.log('Pagos creados para operación de confirming:', response.payments);
+          
+          // Mostrar mensaje específico para confirming con información de pagos
+          const paymentInfo = response.payments.map((payment: any) => {
+            const typeLabel = payment.type === 'supplier_payment' ? 'Pago al proveedor' : 'Cobro a la empresa';
+            const statusLabel = payment.status === 'pending' ? 'Pendiente' : payment.status;
+            return `${typeLabel}: $${payment.amount.toLocaleString()} (${statusLabel})`;
+          }).join(', ');
+          
+          this.router.navigate(['/dashboard/inversor'], { 
+            queryParams: { 
+              message: `Inversión de confirming creada exitosamente. ${paymentInfo}`,
+              type: 'confirming_success'
+            }
+          });
+        } else {
+          // Mensaje estándar para inversiones directas
+          this.router.navigate(['/dashboard/inversor'], { 
+            queryParams: { message: 'Inversión creada exitosamente' }
+          });
+        }
+      },
+      error: (error: any) => {
+        console.error('Error al crear inversión:', error);
+        
+        // Mostrar mensaje de error más específico
+        let errorMessage = 'Error al crear la inversión. Por favor, intenta de nuevo.';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        }
+        
+        this.router.navigate(['/dashboard/inversor'], { 
+          queryParams: { 
+            error: errorMessage,
+            type: 'investment_error'
+          }
+        });
+      }
+    });
+  }
+
+  createProposalWithModifications(invoice: Invoice, modifications: any) {
+    // Navegar a crear propuesta con las modificaciones
+    this.router.navigate(['/crear-propuesta', invoice.id], {
+      state: { 
+        modifications: modifications,
+        originalInvoice: invoice 
+      }
+    });
+  }
+
+  extractOriginalConditions(invoice: Invoice): any {
+    return {
+      amount: invoice.amount,
+      discount_rate: invoice.discount_rate || 0,
+      due_date: invoice.due_date,
+      // Agregar más condiciones según sea necesario
+    };
   }
 
   navigateBack() {

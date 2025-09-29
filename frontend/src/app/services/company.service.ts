@@ -125,14 +125,34 @@ export class CompanyService {
   }
 
   /**
+   * Obtener estadísticas de financiamientos recibidos por la empresa
+   */
+  getCompanyFinancingStats(): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.get(`${this.API_URL}/investments/company-financing-stats`, { headers });
+  }
+
+  /**
+   * Obtener historial de financiamientos recibidos por la empresa
+   */
+  getCompanyFinancingHistory(): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.get(`${this.API_URL}/investments/company-financing-history`, { headers });
+  }
+
+  /**
+   * Obtener actividad reciente de financiamientos
+   */
+  getCompanyFinancingActivity(): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.get(`${this.API_URL}/investments/company-financing-activity`, { headers });
+  }
+
+  /**
    * Obtener headers de autorización
    */
   private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
+    return this.authService.getAuthHeaders();
   }
 
   /**

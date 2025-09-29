@@ -265,6 +265,15 @@ class InvoiceController extends Controller
      */
     public function createConfirmingInvoice(Request $request)
     {
+        \Log::info('createConfirmingInvoice called', [
+            'user_id' => auth()->id(),
+            'user_authenticated' => auth()->check(),
+            'request_method' => $request->method(),
+            'request_headers' => $request->headers->all(),
+            'request_data' => $request->all(),
+            'request_files' => $request->allFiles()
+        ]);
+
         $rules = [
             'invoice_number' => 'required|string|max:255|unique:invoices',
             'amount' => 'required|numeric|min:0',
@@ -277,14 +286,25 @@ class InvoiceController extends Controller
             // Confirming specific fields
             'supplier_name' => 'required|string|max:255',
             'supplier_tax_id' => 'required|string|max:20',
-            'payment_terms' => 'required|string|max:255',
+            'payment_terms' => 'required|numeric|min:1|max:365',
             'early_payment_discount' => 'nullable|numeric|min:0|max:20',
-            'confirmation_deadline' => 'required|date|after:issue_date|before:due_date',
+            'confirmation_deadline' => 'required|date|after:issue_date|before_or_equal:due_date',
+            'confirming_type' => 'required|string|in:confirmed,reverse',
+            'confirming_commission' => 'nullable|numeric|min:0|max:10',
+            'guarantee_type' => 'nullable|string|in:none,bank_guarantee,insurance,collateral',
+            'payment_guarantee' => 'nullable|string|in:none,bank_guarantee,insurance,collateral',
+            'supplier_notification' => 'nullable|in:true,false,1,0',
+            'advance_request' => 'nullable|in:true,false,1,0',
         ];
 
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
+            \Log::error('Confirming invoice validation failed', [
+                'user_id' => auth()->id(),
+                'validation_errors' => $validator->errors(),
+                'request_data' => $request->all()
+            ]);
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
@@ -301,6 +321,12 @@ class InvoiceController extends Controller
         $invoiceData['operation_type'] = 'confirming';
         $invoiceData['status'] = 'pending';
         $invoiceData['verification_status'] = 'pending';
+        
+        // Ensure boolean fields have default values if not provided
+        $invoiceData['supplier_notification'] = $request->has('supplier_notification') ? 
+            filter_var($request->supplier_notification, FILTER_VALIDATE_BOOLEAN) : false;
+        $invoiceData['advance_request'] = $request->has('advance_request') ? 
+            filter_var($request->advance_request, FILTER_VALIDATE_BOOLEAN) : false;
 
         // Calculate net amount based on discount rate
         if ($request->has('discount_rate')) {
@@ -480,7 +506,7 @@ class InvoiceController extends Controller
              // Confirming specific fields
              'supplier_name' => 'sometimes|string|max:255',
              'supplier_tax_id' => 'sometimes|string|max:20',
-             'payment_terms' => 'sometimes|string|max:255',
+             'payment_terms' => 'sometimes|numeric|min:1|max:365',
              'early_payment_discount' => 'nullable|numeric|min:0|max:20',
              'confirmation_deadline' => 'sometimes|date|after:today|before:due_date',
          ];
@@ -564,7 +590,7 @@ class InvoiceController extends Controller
             $rules = array_merge($rules, [
                 'supplier_name' => 'required|string|max:255',
                 'supplier_tax_id' => 'required|string|max:255',
-                'payment_terms' => 'required|string|max:255',
+                'payment_terms' => 'required|numeric|min:1|max:365',
                 'early_payment_discount' => 'nullable|numeric|min:0|max:100',
                 'confirmation_deadline' => 'required|date|after:issue_date',
             ]);

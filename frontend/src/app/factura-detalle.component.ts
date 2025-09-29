@@ -214,6 +214,42 @@ import { AuthService } from './services/auth.service';
                       <span class="detail-value">{{ formatDate(factura()!.confirmation_deadline!) }}</span>
                     </div>
                   }
+                  @if (factura()!.confirming_type) {
+                    <div class="detail-row">
+                      <span class="detail-label">Tipo de Confirming:</span>
+                      <span class="detail-value">{{ getConfirmingTypeLabel(factura()!.confirming_type!) }}</span>
+                    </div>
+                  }
+                  @if (factura()!.confirming_commission) {
+                    <div class="detail-row">
+                      <span class="detail-label">Comisión de Confirming:</span>
+                      <span class="detail-value">{{ factura()!.confirming_commission }}%</span>
+                    </div>
+                  }
+                  @if (factura()!.guarantee_type !== null && factura()!.guarantee_type !== undefined) {
+                    <div class="detail-row">
+                      <span class="detail-label">Tipo de Garantía:</span>
+                      <span class="detail-value">{{ getGuaranteeTypeLabel(factura()!.guarantee_type!) }}</span>
+                    </div>
+                  }
+                  @if (factura()!.payment_guarantee !== null && factura()!.payment_guarantee !== undefined) {
+                    <div class="detail-row">
+                      <span class="detail-label">Garantía de Pago:</span>
+                      <span class="detail-value">{{ getGuaranteeTypeLabel(factura()!.payment_guarantee!) }}</span>
+                    </div>
+                  }
+                  @if (factura()!.supplier_notification !== undefined) {
+                    <div class="detail-row">
+                      <span class="detail-label">Notificación al Proveedor:</span>
+                      <span class="detail-value">{{ factura()!.supplier_notification ? 'Sí' : 'No' }}</span>
+                    </div>
+                  }
+                  @if (factura()!.advance_request !== undefined) {
+                    <div class="detail-row">
+                      <span class="detail-label">Solicitud de Anticipo:</span>
+                      <span class="detail-value">{{ factura()!.advance_request ? 'Sí' : 'No' }}</span>
+                    </div>
+                  }
                 </div>
               </div>
             }
@@ -313,6 +349,10 @@ export class FacturaDetalleComponent implements OnInit {
 
     this.invoiceService.getInvoice(this.facturaId).subscribe({
       next: (response) => {
+        console.log('Factura cargada:', response);
+        console.log('Operation type:', response.operation_type);
+        console.log('Confirming type:', response.confirming_type);
+        console.log('Confirming commission:', response.confirming_commission);
         this.factura.set(response);
         this.isLoading.set(false);
       },
@@ -429,17 +469,17 @@ export class FacturaDetalleComponent implements OnInit {
 
   formatCurrency(amount: number | string | null | undefined): string {
     if (amount === null || amount === undefined) {
-      return '$0';
+      return '$0.00';
     }
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(numericAmount)) {
-      return '$0';
+      return '$0.00';
     }
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(numericAmount);
   }
 
@@ -449,5 +489,35 @@ export class FacturaDetalleComponent implements OnInit {
       month: 'long',
       day: 'numeric'
     });
+  }
+
+  getConfirmingTypeLabel(type: string): string {
+    switch (type) {
+      case 'confirmed':
+        return 'Confirmado';
+      case 'reverse':
+        return 'Reverso';
+      case 'simple':
+        return 'Simple';
+      case 'irrevocable':
+        return 'Irrevocable';
+      default:
+        return type;
+    }
+  }
+
+  getGuaranteeTypeLabel(type: string): string {
+    switch (type) {
+      case 'none':
+        return 'Sin Garantía';
+      case 'bank_guarantee':
+        return 'Garantía Bancaria';
+      case 'insurance':
+        return 'Seguro';
+      case 'collateral':
+        return 'Colateral';
+      default:
+        return type;
+    }
   }
 }

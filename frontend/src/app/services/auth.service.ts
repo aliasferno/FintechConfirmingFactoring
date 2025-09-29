@@ -211,7 +211,7 @@ export class AuthService {
   /**
    * Obtener headers de autorización
    */
-  private getAuthHeaders(): HttpHeaders {
+  getAuthHeaders(): HttpHeaders {
     const token = this.getToken();
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`,

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\InvestmentProposal;
 use App\Models\Invoice;
 use App\Models\Investment;
+use App\Notifications\NewInvestmentProposalNotification;
+use App\Notifications\ProposalStatusNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
@@ -78,6 +80,10 @@ class InvestmentProposalController extends Controller
         if ($proposal->sendToCompany()) {
             $proposal->load(['investor', 'invoice.company']);
             
+            // Enviar notificación a la empresa
+            $companyUser = $proposal->invoice->company->user;
+            $companyUser->notify(new NewInvestmentProposalNotification($proposal));
+            
             return response()->json([
                 'message' => 'Propuesta enviada exitosamente a la empresa',
                 'proposal' => $proposal
@@ -125,6 +131,10 @@ class InvestmentProposalController extends Controller
         if ($proposal->approve($user->id, $request->approval_notes)) {
             $proposal->load(['investor', 'invoice.company', 'respondedBy']);
             
+            // Enviar notificación al inversor
+            $investorUser = $proposal->investor->user;
+            $investorUser->notify(new ProposalStatusNotification($proposal, 'approved', $request->approval_notes));
+            
             return response()->json([
                 'message' => 'Propuesta aprobada exitosamente',
                 'proposal' => $proposal
@@ -171,6 +181,10 @@ class InvestmentProposalController extends Controller
 
         if ($proposal->reject($user->id, $request->rejection_reason)) {
             $proposal->load(['investor', 'invoice.company', 'respondedBy']);
+            
+            // Enviar notificación al inversor
+            $investorUser = $proposal->investor->user;
+            $investorUser->notify(new ProposalStatusNotification($proposal, 'rejected', $request->rejection_reason));
             
             return response()->json([
                 'message' => 'Propuesta rechazada exitosamente',
@@ -225,6 +239,7 @@ class InvestmentProposalController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'invoice_id' => 'required|exists:invoices,id',
+            'amount' => 'required|numeric|min:0',
             // Campos específicos de factoring
             'advance_percentage' => 'nullable|numeric|min:70|max:90',
             'factoring_commission' => 'nullable|numeric|min:0.5|max:10',
@@ -256,6 +271,14 @@ class InvestmentProposalController extends Controller
             return response()->json([
                 'message' => 'Esta factura no está disponible para inversión'
             ], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Obtener el perfil del inversor
+        $investor = $user->investor;
+        if (!$investor) {
+            return response()->json([
+                'message' => 'Perfil de inversor no encontrado'
+            ], Response::HTTP_NOT_FOUND);
         }
 
         // Validaciones específicas para factoring
@@ -290,7 +313,7 @@ class InvestmentProposalController extends Controller
         }
         
         // Verificar que no haya una propuesta activa del mismo inversor para la misma factura
-        $existingProposal = InvestmentProposal::where('investor_id', $user->id)
+        $existingProposal = InvestmentProposal::where('investor_id', $investor->id)
             ->where('invoice_id', $request->invoice_id)
             ->active()
             ->first();
@@ -303,8 +326,9 @@ class InvestmentProposalController extends Controller
         
         // Crear datos específicos según el tipo de operación
         $proposalData = [
-            'investor_id' => $user->id,
+            'investor_id' => $investor->id,
             'invoice_id' => $request->invoice_id,
+            'amount' => $request->amount,
             'status' => InvestmentProposal::STATUS_DRAFT,
         ];
         

@@ -46,6 +46,9 @@ class CompanyController extends Controller
         
         \Log::info('Validated company data:', $validatedData);
 
+        // Set verification_status to 'verified' by default
+        $validatedData['verification_status'] = 'verified';
+
         try {
             $company = Company::create($validatedData);
             \Log::info('Company created successfully:', ['company_id' => $company->id]);

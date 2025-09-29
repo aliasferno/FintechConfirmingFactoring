@@ -566,7 +566,7 @@ export class MisPropuestasComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/dashboard-inversor']);
+    this.router.navigate(['/dashboard/inversor']);
   }
 
   sendProposal(proposal: InvestmentProposal) {

@@ -31,6 +31,12 @@ export interface Invoice {
   payment_terms?: string;
   early_payment_discount?: number;
   confirmation_deadline?: string;
+  confirming_type?: string;
+  confirming_commission?: number;
+  guarantee_type?: string;
+  payment_guarantee?: string;
+  supplier_notification?: boolean;
+  advance_request?: boolean;
   created_at: string;
   updated_at: string;
   company?: {
@@ -181,6 +187,13 @@ export class InvoiceService {
   }
 
   /**
+   * Get a public invoice by ID (for investment opportunities, no auth required)
+   */
+  getPublicInvoice(id: number): Observable<Invoice> {
+    return this.http.get<Invoice>(`${this.apiUrl}/public/invoices/${id}`);
+  }
+
+  /**
    * Get specific factoring invoice
    */
   getFactoringInvoice(id: number): Observable<Invoice> {
@@ -287,12 +300,7 @@ export class InvoiceService {
     return this.http.get<Invoice[]>(`${this.apiUrl}/invoices/available-for-investment`, { headers: this.getHeaders() });
   }
 
-  /**
-   * Get a public invoice by ID (no authentication required)
-   */
-  getPublicInvoice(id: number): Observable<Invoice> {
-    return this.http.get<Invoice>(`${this.apiUrl}/public/invoices/${id}`);
-  }
+
 
   /**
    * Update verification status of an invoice

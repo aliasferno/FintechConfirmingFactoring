@@ -364,6 +364,32 @@
   flex: 1;
 }
 
+.opportunity-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.operation-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.operation-badge.factoring {
+  background: #e6fffa;
+  color: #234e52;
+}
+
+.operation-badge.confirming {
+  background: #fef5e7;
+  color: #744210;
+}
+
 .risk-badge {
   font-size: 0.75rem;
   font-weight: 600;
@@ -431,10 +457,27 @@
   color: #667eea;
 }
 
-.opportunity-actions {
+.button-group {
   display: flex;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+.detail-button {
+  flex: 1;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .invest-button {
@@ -454,21 +497,9 @@
   gap: 0.5rem;
 }
 
-.propose-button {
-  flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+.detail-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
 
 .invest-button:hover {
@@ -476,17 +507,7 @@
   box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
 }
 
-.propose-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-}
-
-.invest-button svg,
-.propose-button svg {
-  width: 1rem;
-  height: 1rem;
-}
-
+.detail-button svg,
 .invest-button svg {
   width: 1rem;
   height: 1rem;

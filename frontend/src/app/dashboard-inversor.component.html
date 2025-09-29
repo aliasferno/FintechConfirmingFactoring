@@ -158,23 +158,45 @@
             <div class="opportunity-card">
               <div class="opportunity-header">
                 <h3 class="company-name">{{ opportunity.companyName }}</h3>
-                <span class="risk-badge" [class]="getRiskLevelColor(opportunity.riskLevel)">
-                  {{ getRiskLevelText(opportunity.riskLevel) }}
-                </span>
+                <div class="opportunity-badges">
+                  <span class="operation-badge" [class]="opportunity.operationType">
+                    {{ opportunity.operationType === 'factoring' ? 'Factoring' : 'Confirming' }}
+                  </span>
+                  <span class="risk-badge" [class]="getRiskLevelColor(opportunity.riskLevel)">
+                    {{ getRiskLevelText(opportunity.riskLevel) }}
+                  </span>
+                </div>
               </div>
               <div class="opportunity-details">
                 <div class="detail-item">
                   <span class="detail-label">Factura:</span>
                   <span class="detail-value">{{ opportunity.facturaNumber }}</span>
                 </div>
+                @if (opportunity.operationType === 'confirming' && opportunity.supplierName) {
+                  <div class="detail-item">
+                    <span class="detail-label">Proveedor:</span>
+                    <span class="detail-value">{{ opportunity.supplierName }}</span>
+                  </div>
+                }
                 <div class="detail-item">
                   <span class="detail-label">Monto:</span>
                   <span class="detail-value amount">{{ formatCurrency(opportunity.amount) }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Tasa:</span>
-                  <span class="detail-value rate">{{ formatPercentage(opportunity.interestRate) }}</span>
+                  @if (opportunity.operationType === 'confirming') {
+                    <span class="detail-label">Comisión de Confirming:</span>
+                    <span class="detail-value rate">{{ formatPercentage((opportunity.confirmingCommission || 0) / 100) }}</span>
+                  } @else {
+                    <span class="detail-label">Tasa:</span>
+                    <span class="detail-value rate">{{ formatPercentage(opportunity.interestRate) }}</span>
+                  }
                 </div>
+                @if (opportunity.earlyPaymentDiscount && opportunity.advanceRequest) {
+                  <div class="detail-item">
+                    <span class="detail-label">Descuento por Pago Anticipado:</span>
+                    <span class="detail-value rate">{{ formatPercentage(opportunity.earlyPaymentDiscount / 100) }}</span>
+                  </div>
+                }
                 <div class="detail-item">
                   <span class="detail-label">Plazo:</span>
                   <span class="detail-value">{{ opportunity.term }} días</span>
@@ -185,21 +207,22 @@
                 </div>
                 <div class="detail-item expected-return">
                   <span class="detail-label">Rendimiento esperado:</span>
-                  <span class="detail-value return">{{ formatCurrency(calculateExpectedReturn(opportunity.amount, opportunity.interestRate, opportunity.term)) }}</span>
+                  <span class="detail-value return">{{ formatCurrency(calculateExpectedReturn(opportunity.amount, opportunity.interestRate, opportunity.term, opportunity.operationType, opportunity.advancePercentage || undefined, opportunity.advanceRequest, opportunity.confirmingCommission || undefined, opportunity.earlyPaymentDiscount || undefined)) }}</span>
                 </div>
               </div>
-              <div class="opportunity-actions">
-                <button class="invest-button primary" (click)="investInOpportunity(opportunity.id)">
+              <div class="button-group">
+                <button class="detail-button" (click)="viewOpportunityDetail(opportunity.id)">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                  Ver Detalle
+                </button>
+                <button class="invest-button" (click)="investInOpportunity(opportunity.id)">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                   </svg>
                   Invertir
-                </button>
-                <button class="propose-button" (click)="createProposal(opportunity.id)">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                  Proponer
                 </button>
               </div>
             </div>
@@ -241,4 +264,15 @@
       </section>
     }
   </main>
+
+  <!-- Modal de Condiciones de Inversión -->
+  @if (showCondicionesModal() && selectedInvoice()) {
+    <app-modal-condiciones-inversion
+      [isVisible]="showCondicionesModal()"
+      [invoice]="selectedInvoice()!"
+      (acceptConditions)="onAcceptConditions()"
+      (modifyConditions)="onModifyConditions($event)"
+      (cancel)="onCancelModal()">
+    </app-modal-condiciones-inversion>
+  }
 </div>

@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('invoices', function (Blueprint $table) {
-            // Drop the incorrect foreign key constraint
-            $table->dropForeign('invoices_user_id_fkey');
+            // Eliminar la foreign key incorrecta
+            $table->dropForeign(['company_id']);
             
-            // Add the correct foreign key constraint pointing to companies table
+            // Agregar la foreign key correcta que referencia la tabla companies
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
         });
     }
@@ -26,11 +26,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('invoices', function (Blueprint $table) {
-            // Drop the correct foreign key constraint
+            // Eliminar la foreign key correcta
             $table->dropForeign(['company_id']);
             
-            // Restore the original (incorrect) foreign key constraint
-            $table->foreign('company_id', 'invoices_user_id_fkey')->references('id')->on('users')->onDelete('cascade');
+            // Restaurar la foreign key incorrecta (para rollback)
+            $table->foreign('company_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 };

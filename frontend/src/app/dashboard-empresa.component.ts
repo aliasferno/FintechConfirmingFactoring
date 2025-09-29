@@ -158,6 +158,10 @@ export class DashboardEmpresaComponent implements OnInit {
     this.router.navigate(['/financiamiento']);
   }
 
+  navigateToFinanciamientosRecibidos() {
+    this.router.navigate(['/financiamientos-recibidos']);
+  }
+
   navigateToReportes() {
     this.router.navigate(['/reportes']);
   }
@@ -185,16 +189,17 @@ export class DashboardEmpresaComponent implements OnInit {
 
   formatCurrency(amount: number | string | null | undefined): string {
     if (amount === null || amount === undefined) {
-      return '$0';
+      return '$0.00';
     }
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(numericAmount)) {
-      return '$0';
+      return '$0.00';
     }
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(numericAmount);
   }
 

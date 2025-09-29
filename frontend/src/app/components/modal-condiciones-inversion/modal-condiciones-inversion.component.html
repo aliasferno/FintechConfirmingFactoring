@@ -1,0 +1,400 @@
+<div class="modal-overlay" *ngIf="isVisible" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Condiciones de Inversión</h2>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Información básica de la factura -->
+      <div class="invoice-info">
+        <h3>Información de la Factura</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Número de Factura:</label>
+            <span>{{ invoice?.invoice_number }}</span>
+          </div>
+          <div class="info-item">
+            <label>Empresa:</label>
+            <span>{{ invoice?.company?.name }}</span>
+          </div>
+          <div class="info-item">
+            <label>Monto:</label>
+            <span>{{ formatCurrency(invoice?.amount || 0) }}</span>
+          </div>
+          <div class="info-item">
+            <label>Tipo de Operación:</label>
+            <span class="operation-type" [class]="invoice?.operation_type">
+              {{ invoice?.operation_type === 'factoring' ? 'Factoring' : 'Confirming' }}
+            </span>
+          </div>
+          <div class="info-item">
+            <label>Fecha de Vencimiento:</label>
+            <span>{{ formatDate(invoice?.due_date || '') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Condiciones originales -->
+      <div class="original-conditions">
+        <h3>Condiciones Originales Establecidas por la Empresa</h3>
+        
+        <!-- Condiciones para Factoring -->
+        <div *ngIf="invoice?.operation_type === 'factoring'" class="conditions-grid">
+          <div class="condition-item">
+            <label>Porcentaje de Adelanto:</label>
+            <span class="highlight">{{ formatPercentage(invoice?.advance_percentage || 0) }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Tasa de Comisión:</label>
+            <span class="highlight">{{ formatPercentage(invoice?.commission_rate || 0) }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Fecha Esperada de Cobro:</label>
+            <span>{{ formatDate(invoice?.expected_collection_date || '') }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Evaluación de Riesgo:</label>
+            <span class="risk-level" [class]="invoice?.credit_risk_assessment">
+              {{ invoice?.credit_risk_assessment === 'low' ? 'Bajo' : 
+                 invoice?.credit_risk_assessment === 'medium' ? 'Medio' : 'Alto' }}
+            </span>
+          </div>
+          <div class="condition-item">
+            <label>Tipo de Factoring:</label>
+            <span>{{ invoice?.factoring_type === 'with_recourse' ? 'Con Recurso' : 'Sin Recurso' }}</span>
+          </div>
+        </div>
+
+        <!-- Condiciones para Confirming -->
+        <div *ngIf="invoice?.operation_type === 'confirming'" class="conditions-grid">
+          <div class="condition-item">
+            <label>Términos de Pago:</label>
+            <span class="highlight">{{ invoice?.payment_terms }} días</span>
+          </div>
+          <div class="condition-item">
+            <label>Descuento por Pago Anticipado:</label>
+            <span class="highlight">{{ formatPercentage(invoice?.early_payment_discount || 0) }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Fecha Límite de Confirmación:</label>
+            <span>{{ formatDate(invoice?.confirmation_deadline || '') }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Tasa de Comisión:</label>
+            <span class="highlight">{{ formatPercentage(invoice?.commission_rate || 0) }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Tipo de Confirming:</label>
+            <span>{{ invoice?.confirming_type === 'simple' ? 'Simple' : 'Irrevocable' }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Tipo de Garantía:</label>
+            <span>{{ invoice?.guarantee_type === 'bank_guarantee' ? 'Garantía Bancaria' : 'Aval Corporativo' }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Comisión de Confirming:</label>
+            <span class="highlight">{{ formatPercentage(invoice?.confirming_commission || 0) }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Notificación al Proveedor:</label>
+            <span>{{ invoice?.supplier_notification ? 'Sí' : 'No' }}</span>
+          </div>
+          <div class="condition-item">
+            <label>Solicitud de Adelanto:</label>
+            <span>{{ invoice?.advance_request ? 'Sí' : 'No' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Condiciones de la Empresa (Nueva Sección) -->
+      <div class="company-conditions">
+        <h3>Condiciones de Negociación de la Empresa</h3>
+        <div class="conditions-box">
+          <div class="conditions-content">
+            <div *ngIf="invoice?.operation_type === 'confirming'" class="company-terms">
+              <div class="term-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span><strong>Plazo de pago:</strong> {{ invoice?.payment_terms }} días calendario</span>
+              </div>
+              <div class="term-item" *ngIf="invoice?.early_payment_discount">
+                <i class="fas fa-percentage"></i>
+                <span><strong>Descuento por pago anticipado:</strong> {{ formatPercentage(invoice?.early_payment_discount || 0) }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-shield-alt"></i>
+                <span><strong>Tipo de confirming:</strong> {{ getConfirmingTypeLabel(invoice?.confirming_type) }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-handshake"></i>
+                <span><strong>Garantía requerida:</strong> {{ getGuaranteeTypeLabel(invoice?.guarantee_type) }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-clock"></i>
+                <span><strong>Fecha límite de confirmación:</strong> {{ formatDate(invoice?.confirmation_deadline || '') }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-percentage"></i>
+                <span><strong>Comisión de confirming:</strong> {{ formatPercentage(invoice?.confirming_commission || 0) }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-bell"></i>
+                <span><strong>Notificación al proveedor:</strong> {{ invoice?.supplier_notification ? 'Sí' : 'No' }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-money-bill-wave"></i>
+                <span><strong>Solicitud de adelanto:</strong> {{ invoice?.advance_request ? 'Sí' : 'No' }}</span>
+              </div>
+            </div>
+            
+            <div *ngIf="invoice?.operation_type === 'factoring'" class="company-terms">
+              <div class="term-item">
+                <i class="fas fa-chart-line"></i>
+                <span><strong>Porcentaje de adelanto máximo:</strong> {{ formatPercentage(invoice?.advance_percentage || 0) }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-percentage"></i>
+                <span><strong>Comisión establecida:</strong> {{ formatPercentage(invoice?.commission_rate || 0) }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-calendar-check"></i>
+                <span><strong>Fecha esperada de cobro:</strong> {{ formatDate(invoice?.expected_collection_date || '') }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span><strong>Nivel de riesgo evaluado:</strong> {{ getRiskLevelLabel(invoice?.credit_risk_assessment) }}</span>
+              </div>
+              <div class="term-item">
+                <i class="fas fa-file-contract"></i>
+                <span><strong>Modalidad:</strong> {{ getFactoringTypeLabel(invoice?.factoring_type) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="acceptance-section">
+            <div class="checkbox-container">
+              <input 
+                type="checkbox" 
+                id="acceptCompanyConditions" 
+                [(ngModel)]="companyConditionsAccepted"
+                class="custom-checkbox">
+              <label for="acceptCompanyConditions" class="checkbox-label">
+                <span class="checkmark"></span>
+                Acepto las condiciones de negociación establecidas por la empresa
+              </label>
+            </div>
+            <p class="acceptance-note">
+              <i class="fas fa-info-circle"></i>
+              Al aceptar estas condiciones, confirmas que estás de acuerdo con los términos establecidos por la empresa para esta operación.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Retorno potencial -->
+      <div class="potential-return">
+        <h4>Retorno Potencial Estimado</h4>
+        <div class="return-amount">
+          {{ formatCurrency(calculatePotentialReturn()) }}
+        </div>
+      </div>
+
+      <!-- Formulario de modificación (solo visible cuando se activa) -->
+      <div *ngIf="showModificationForm" class="modification-form">
+        <h3>Modificar Condiciones</h3>
+        <form [formGroup]="condicionesForm">
+          <!-- Campos para Factoring -->
+          <div *ngIf="invoice?.operation_type === 'factoring'" class="form-grid">
+            <div class="form-group">
+              <label for="advance_percentage">Porcentaje de Adelanto (%):</label>
+              <input 
+                type="number" 
+                id="advance_percentage"
+                formControlName="advance_percentage"
+                min="1" 
+                max="100"
+                step="0.01"
+                class="form-control"
+                [class.error]="advance_percentage?.invalid && advance_percentage?.touched">
+              <div *ngIf="advance_percentage?.invalid && advance_percentage?.touched" class="error-message">
+                Debe estar entre 1% y 100%
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="commission_rate">Tasa de Comisión (%):</label>
+              <input 
+                type="number" 
+                id="commission_rate"
+                formControlName="commission_rate"
+                min="0.1" 
+                max="50"
+                step="0.01"
+                class="form-control"
+                [class.error]="commission_rate?.invalid && commission_rate?.touched">
+              <div *ngIf="commission_rate?.invalid && commission_rate?.touched" class="error-message">
+                Debe estar entre 0.1% y 50%
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="expected_collection_date">Fecha Esperada de Cobro:</label>
+              <input 
+                type="date" 
+                id="expected_collection_date"
+                formControlName="expected_collection_date"
+                class="form-control"
+                [class.error]="expected_collection_date?.invalid && expected_collection_date?.touched">
+            </div>
+
+            <div class="form-group">
+              <label for="credit_risk_assessment">Evaluación de Riesgo:</label>
+              <select 
+                id="credit_risk_assessment"
+                formControlName="credit_risk_assessment"
+                class="form-control">
+                <option value="low">Bajo</option>
+                <option value="medium">Medio</option>
+                <option value="high">Alto</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="factoring_type">Tipo de Factoring:</label>
+              <select 
+                id="factoring_type"
+                formControlName="factoring_type"
+                class="form-control">
+                <option value="with_recourse">Con Recurso</option>
+                <option value="without_recourse">Sin Recurso</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Campos para Confirming -->
+          <div *ngIf="invoice?.operation_type === 'confirming'" class="form-grid">
+            <div class="form-group">
+              <label for="payment_terms">Términos de Pago (días):</label>
+              <input 
+                type="number" 
+                id="payment_terms"
+                formControlName="payment_terms"
+                min="1" 
+                max="365"
+                class="form-control"
+                [class.error]="payment_terms?.invalid && payment_terms?.touched">
+              <div *ngIf="payment_terms?.invalid && payment_terms?.touched" class="error-message">
+                Debe estar entre 1 y 365 días
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="early_payment_discount">Descuento por Pago Anticipado (%):</label>
+              <input 
+                type="number" 
+                id="early_payment_discount"
+                formControlName="early_payment_discount"
+                min="0" 
+                max="20"
+                step="0.01"
+                class="form-control"
+                [class.error]="early_payment_discount?.invalid && early_payment_discount?.touched">
+              <div *ngIf="early_payment_discount?.invalid && early_payment_discount?.touched" class="error-message">
+                Debe estar entre 0% y 20%
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="confirmation_deadline">Fecha Límite de Confirmación:</label>
+              <input 
+                type="date" 
+                id="confirmation_deadline"
+                formControlName="confirmation_deadline"
+                class="form-control"
+                [class.error]="confirmation_deadline?.invalid && confirmation_deadline?.touched">
+            </div>
+
+            <div class="form-group">
+              <label for="commission_rate">Tasa de Comisión (%):</label>
+              <input 
+                type="number" 
+                id="commission_rate"
+                formControlName="commission_rate"
+                min="0.1" 
+                max="10"
+                step="0.01"
+                class="form-control"
+                [class.error]="commission_rate?.invalid && commission_rate?.touched">
+              <div *ngIf="commission_rate?.invalid && commission_rate?.touched" class="error-message">
+                Debe estar entre 0.1% y 10%
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="confirming_type">Tipo de Confirming:</label>
+              <select 
+                id="confirming_type"
+                formControlName="confirming_type"
+                class="form-control">
+                <option value="simple">Simple</option>
+                <option value="irrevocable">Irrevocable</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="guarantee_type">Tipo de Garantía:</label>
+              <select 
+                id="guarantee_type"
+                formControlName="guarantee_type"
+                class="form-control">
+                <option value="bank_guarantee">Garantía Bancaria</option>
+                <option value="corporate_guarantee">Aval Corporativo</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div *ngIf="!showModificationForm" class="action-buttons">
+        <button 
+          class="btn btn-success" 
+          (click)="acceptCompanyConditions()"
+          [disabled]="!companyConditionsAccepted">
+          <i class="fas fa-check"></i>
+          Aceptar Condiciones
+        </button>
+        <button class="btn btn-warning" (click)="showModificationOptions()">
+          <i class="fas fa-edit"></i>
+          Modificar Condiciones
+        </button>
+        <button class="btn btn-secondary" (click)="closeModal()">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+        
+        <div *ngIf="!companyConditionsAccepted" class="validation-message">
+          <i class="fas fa-exclamation-circle"></i>
+          Debes aceptar las condiciones de la empresa para continuar
+        </div>
+      </div>
+
+      <div *ngIf="showModificationForm" class="modification-buttons">
+        <button 
+          class="btn btn-primary" 
+          (click)="submitModifications()"
+          [disabled]="!condicionesForm.valid">
+          <i class="fas fa-paper-plane"></i>
+          Enviar Propuesta
+        </button>
+        <button class="btn btn-secondary" (click)="closeModal()">
+          <i class="fas fa-arrow-left"></i>
+          Volver
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

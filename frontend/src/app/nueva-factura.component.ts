@@ -28,6 +28,12 @@ export interface InvoiceRequest {
   payment_terms?: string;
   early_payment_discount?: number;
   confirmation_deadline?: string;
+  confirming_type?: 'confirmed' | 'reverse';
+  confirming_commission?: number;
+  guarantee_type?: 'bank_guarantee' | 'insurance' | 'collateral' | 'surety_bond' | 'none';
+  payment_guarantee?: string;
+  supplier_notification?: boolean;
+  advance_request?: boolean;
 }
 
 @Component({
@@ -323,6 +329,77 @@ export interface InvoiceRequest {
                     <span class="error-message">{{ getFieldErrorMessage('confirmation_deadline') }}</span>
                   }
                   </div>
+
+                  <div class="form-group">
+                    <label for="confirming_type">Tipo de Confirming *</label>
+                    <select 
+                      id="confirming_type" 
+                      formControlName="confirming_type"
+                      [class.error]="invoiceForm.get('confirming_type')?.invalid && invoiceForm.get('confirming_type')?.touched">
+                      <option value="">Seleccionar tipo</option>
+                      <option value="confirmed">Confirmado</option>
+                      <option value="reverse">Reverso</option>
+                    </select>
+                    @if (invoiceForm.get('confirming_type')?.invalid && invoiceForm.get('confirming_type')?.touched) {
+                    <span class="error-message">{{ getFieldErrorMessage('confirming_type') }}</span>
+                  }
+                  </div>
+
+                  <div class="form-group">
+                    <label for="confirming_commission">Comisión de Confirming (%)</label>
+                    <input 
+                      type="number" 
+                      id="confirming_commission" 
+                      formControlName="confirming_commission"
+                      placeholder="1.50"
+                      step="0.01"
+                      min="0.5"
+                      max="10">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="guarantee_type">Tipo de Garantía</label>
+                    <select 
+                      id="guarantee_type" 
+                      formControlName="guarantee_type">
+                      <option value="">Seleccionar garantía</option>
+                      <option value="none">Sin Garantía</option>
+                      <option value="bank_guarantee">Garantía Bancaria</option>
+                      <option value="insurance">Seguro</option>
+                      <option value="collateral">Colateral</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="payment_guarantee">Garantía de Pago</label>
+                    <select 
+                      id="payment_guarantee" 
+                      formControlName="payment_guarantee">
+                      <option value="">Seleccionar garantía de pago</option>
+                      <option value="none">Sin Garantía</option>
+                      <option value="bank_guarantee">Garantía Bancaria</option>
+                      <option value="insurance">Seguro</option>
+                      <option value="collateral">Colateral</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      <input 
+                        type="checkbox" 
+                        formControlName="supplier_notification">
+                      Notificar al Proveedor
+                    </label>
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      <input 
+                        type="checkbox" 
+                        formControlName="advance_request">
+                      Solicitar Adelanto
+                    </label>
+                  </div>
                 </div>
               </div>
             }
@@ -428,7 +505,7 @@ export interface InvoiceRequest {
 })
 export class NuevaFacturaComponent implements OnInit {
   invoiceForm: FormGroup;
-  selectedOperationType = signal<'confirming' | 'factoring'>('factoring');
+  selectedOperationType = signal<'confirming' | 'factoring'>('confirming');
   selectedFile = signal<File | null>(null);
   isDragOver = signal(false);
   isSubmitting = signal(false);
@@ -460,7 +537,13 @@ export class NuevaFacturaComponent implements OnInit {
       supplier_tax_id: [''],
       payment_terms: [''],
       early_payment_discount: [''],
-      confirmation_deadline: ['']
+      confirmation_deadline: [''],
+      confirming_type: [''],
+      confirming_commission: [''],
+      guarantee_type: [''],
+      payment_guarantee: [''],
+      supplier_notification: [false],
+      advance_request: [false]
     });
   }
 
@@ -537,6 +620,7 @@ export class NuevaFacturaComponent implements OnInit {
         Validators.required,
         this.validationService.confirmationDeadlineValidator(this.invoiceForm.get('issue_date')!)
       ]);
+      this.invoiceForm.get('confirming_type')?.setValidators([Validators.required]);
     }
 
     // Actualizar validaciones
@@ -546,7 +630,8 @@ export class NuevaFacturaComponent implements OnInit {
   private clearSpecificValidations() {
     const specificFields = [
       'advance_percentage', 'commission_rate', 'expected_collection_date', 'credit_risk_assessment',
-      'supplier_name', 'supplier_tax_id', 'payment_terms', 'early_payment_discount', 'confirmation_deadline'
+      'supplier_name', 'supplier_tax_id', 'payment_terms', 'early_payment_discount', 'confirmation_deadline',
+      'confirming_type', 'confirming_commission', 'guarantee_type', 'payment_guarantee', 'supplier_notification', 'advance_request'
     ];
     
     specificFields.forEach(field => {
@@ -671,8 +756,14 @@ export class NuevaFacturaComponent implements OnInit {
         formData.append('supplier_tax_id', formValue.supplier_tax_id);
         formData.append('payment_terms', formValue.payment_terms.toString());
         formData.append('confirmation_deadline', formValue.confirmation_deadline);
-        // Este campo es opcional según la validación
+        formData.append('confirming_type', formValue.confirming_type);
+        // Campos opcionales - solo incluir si tienen valor
         if (formValue.early_payment_discount) formData.append('early_payment_discount', formValue.early_payment_discount);
+        if (formValue.confirming_commission) formData.append('confirming_commission', formValue.confirming_commission);
+        if (formValue.guarantee_type) formData.append('guarantee_type', formValue.guarantee_type);
+        if (formValue.payment_guarantee) formData.append('payment_guarantee', formValue.payment_guarantee);
+        if (formValue.supplier_notification !== null) formData.append('supplier_notification', formValue.supplier_notification.toString());
+        if (formValue.advance_request !== null) formData.append('advance_request', formValue.advance_request.toString());
       }
 
       if (this.selectedFile()) {

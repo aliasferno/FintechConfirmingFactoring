@@ -10,6 +10,7 @@ export interface InvestorStats {
   rendimientoTotal: number;
   opportunities: InvestmentOpportunity[];
   recentActivities: RecentActivity[];
+  investments: Investment[];
 }
 
 export interface InvestmentOpportunity {
@@ -22,6 +23,12 @@ export interface InvestmentOpportunity {
   expectedReturn: number;
   riskLevel: string;
   dueDate: string;
+  operationType?: 'factoring' | 'confirming';
+  supplierName?: string;
+  advancePercentage?: number | null;
+  advanceRequest?: boolean;
+  earlyPaymentDiscount?: number | null;
+  confirmingCommission?: number | null;
 }
 
 export interface RecentActivity {
@@ -45,11 +52,36 @@ export interface Investment {
   status: string;
   created_at: string;
   updated_at: string;
+  invoice?: {
+    id: number;
+    invoice_number: string;
+    amount: number;
+    due_date: string;
+    operation_type: string;
+    early_payment_discount?: number;
+    confirming_commission?: number;
+    company: {
+      id: number;
+      business_name: string;
+    };
+  };
 }
 
 export interface InvestmentResponse {
   message: string;
   investment?: Investment;
+}
+
+export interface ProposalData {
+  invoice_id: number;
+  original_conditions: any;
+  proposed_conditions: any;
+  investment_type: 'proposal';
+}
+
+export interface ProposalResponse {
+  message: string;
+  proposal?: any;
 }
 
 @Injectable({
@@ -142,6 +174,32 @@ export class InvestmentService {
   getInvestmentOpportunity(id: number): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/investments/opportunities/${id}`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  // Método para crear propuestas de inversión
+  createProposal(proposalData: ProposalData): Observable<ProposalResponse> {
+    return this.http.post<ProposalResponse>(
+      `${this.apiUrl}/investment-proposals`,
+      proposalData,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  // Método para obtener propuestas del inversor
+  getInvestorProposals(): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/investment-proposals/investor`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  // Método para cancelar una inversión
+  cancelInvestment(id: number): Observable<any> {
+    return this.http.put<any>(
+      `${this.apiUrl}/investments/${id}/cancel`,
+      {},
       { headers: this.getHeaders() }
     );
   }

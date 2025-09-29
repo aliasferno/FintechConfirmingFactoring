@@ -1,0 +1,231 @@
+<div class="financiamientos-container">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <button class="back-button" (click)="navigateBack()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <div class="header-text">
+          <h1 class="page-title">Financiamientos Recibidos</h1>
+          <p class="page-subtitle">Gestiona las inversiones recibidas en tus facturas</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="refresh-button" (click)="refreshData()" [disabled]="isLoading()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" [class.spinning]="isLoading()">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Actualizar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="page-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Cargando financiamientos...</p>
+      </div>
+    } @else if (error()) {
+      <div class="error-container">
+        <div class="error-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+        </div>
+        <h3>Error al cargar datos</h3>
+        <p>{{ error() }}</p>
+        <button class="retry-button" (click)="refreshData()">Reintentar</button>
+      </div>
+    } @else {
+      <!-- Stats Cards -->
+      <section class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-card primary">
+            <div class="stat-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-title">Total Inversiones</h3>
+              <p class="stat-value">{{ stats().total_investments }}</p>
+            </div>
+          </div>
+
+          <div class="stat-card success">
+            <div class="stat-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-title">Monto Financiado</h3>
+              <p class="stat-value">{{ formatCurrency(stats().total_amount_financed) }}</p>
+            </div>
+          </div>
+
+          <div class="stat-card warning">
+            <div class="stat-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-title">Comisiones Pagadas</h3>
+              <p class="stat-value">{{ formatCurrency(stats().total_commissions_paid) }}</p>
+            </div>
+          </div>
+
+          <div class="stat-card info">
+            <div class="stat-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-title">Inversiones Activas</h3>
+              <p class="stat-value">{{ stats().active_investments }}</p>
+            </div>
+          </div>
+
+          <div class="stat-card completed">
+            <div class="stat-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-title">Completadas</h3>
+              <p class="stat-value">{{ stats().completed_investments }}</p>
+            </div>
+          </div>
+
+          <div class="stat-card pending">
+            <div class="stat-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 class="stat-title">Pagos Pendientes</h3>
+              <p class="stat-value">{{ stats().pending_payments }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Financing Records Table -->
+      <section class="records-section">
+        <div class="section-header">
+          <h2 class="section-title">Historial de Financiamientos</h2>
+        </div>
+        
+        @if (financingRecords().length > 0) {
+          <div class="table-container">
+            <table class="financing-table">
+              <thead>
+                <tr>
+                  <th>Factura</th>
+                  <th>Inversor</th>
+                  <th>Monto Factura</th>
+                  <th>Monto Invertido</th>
+                  <th>Descuento</th>
+                  <th>Comisión</th>
+                  <th>Neto Recibido</th>
+                  <th>Fecha Inversión</th>
+                  <th>Estado</th>
+                  <th>Pago</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (record of financingRecords(); track record.id) {
+                  <tr class="table-row">
+                    <td class="invoice-cell">
+                      <div class="invoice-info">
+                        <span class="invoice-number">{{ record.invoice_number }}</span>
+                        <span class="operation-type">{{ record.operation_type }}</span>
+                      </div>
+                    </td>
+                    <td class="investor-cell">
+                      <div class="investor-info">
+                        <span class="investor-name">{{ record.investor_name }}</span>
+                        <span class="investor-email">{{ record.investor_email }}</span>
+                      </div>
+                    </td>
+                    <td class="amount-cell">{{ formatCurrency(record.invoice_amount) }}</td>
+                    <td class="amount-cell invested">{{ formatCurrency(record.amount_invested) }}</td>
+                    <td class="percentage-cell">{{ record.discount_percentage }}%</td>
+                    <td class="percentage-cell">{{ record.commission_percentage }}%</td>
+                    <td class="amount-cell net">{{ formatCurrency(record.net_amount_received) }}</td>
+                    <td class="date-cell">{{ formatDate(record.investment_date) }}</td>
+                    <td class="status-cell">
+                      <span class="status-badge" [class]="getStatusClass(record.status)">
+                        {{ record.status }}
+                      </span>
+                    </td>
+                    <td class="payment-cell">
+                      <div class="payment-info">
+                        <span class="payment-status" [class]="getPaymentStatusClass(record.payment_status)">
+                          {{ record.payment_status }}
+                        </span>
+                        @if (record.executed_payment_date) {
+                          <span class="payment-date">{{ formatDate(record.executed_payment_date) }}</span>
+                        } @else {
+                          <span class="payment-date scheduled">{{ formatDate(record.scheduled_payment_date) }}</span>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <h3>No hay financiamientos</h3>
+            <p>Aún no has recibido inversiones en tus facturas</p>
+          </div>
+        }
+      </section>
+
+      <!-- Recent Activities -->
+      @if (recentActivities().length > 0) {
+        <section class="activities-section">
+          <div class="section-header">
+            <h2 class="section-title">Actividad Reciente</h2>
+          </div>
+          
+          <div class="activities-list">
+            @for (activity of recentActivities(); track activity.id) {
+              <div class="activity-item">
+                <div class="activity-icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                  </svg>
+                </div>
+                <div class="activity-content">
+                  <p class="activity-description">{{ activity.description }}</p>
+                  <div class="activity-meta">
+                    <span class="activity-amount">{{ formatCurrency(activity.amount) }}</span>
+                    <span class="activity-date">{{ formatDateTime(activity.date) }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    }
+  </main>
+</div>

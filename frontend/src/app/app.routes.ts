@@ -12,6 +12,8 @@ import { OportunidadDetalleComponent } from './oportunidad-detalle.component';
 import { CrearPropuestaInversionComponent } from './crear-propuesta-inversion.component';
 import { MisPropuestasComponent } from './mis-propuestas.component';
 import { PropuestasRecibidasComponent } from './propuestas-recibidas.component';
+import { MisInversionesComponent } from './mis-inversiones.component';
+import { FinanciamientosRecibidosComponent } from './financiamientos-recibidos.component';
 import { AuthGuard } from './guards/auth.guard';
 import { RoleGuard } from './guards/role.guard';
 
@@ -51,6 +53,8 @@ export const routes: Routes = [
   { path: 'oportunidad-detalle/:id', component: OportunidadDetalleComponent, canActivate: [AuthGuard] },
   { path: 'crear-propuesta/:invoiceId', component: CrearPropuestaInversionComponent, canActivate: [AuthGuard] },
   { path: 'mis-propuestas', component: MisPropuestasComponent, canActivate: [AuthGuard] },
+  { path: 'inversiones', component: MisInversionesComponent, canActivate: [AuthGuard] },
+  { path: 'financiamientos-recibidos', component: FinanciamientosRecibidosComponent, canActivate: [AuthGuard] },
   { path: 'propuestas-recibidas', component: PropuestasRecibidasComponent, canActivate: [AuthGuard] },
   { path: 'propuesta-detalle/:id', component: OportunidadDetalleComponent, canActivate: [AuthGuard] },
   { path: 'factura-detalle/:id', component: FacturaDetalleComponent, canActivate: [AuthGuard] },

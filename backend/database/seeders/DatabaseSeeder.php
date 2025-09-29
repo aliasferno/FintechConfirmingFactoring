@@ -18,6 +18,13 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'user_type' => 'admin',
         ]);
+
+        // Ejecutar seeder de facturas
+        $this->call(InvoiceSeeder::class);
+        
+        // Ejecutar seeder de inversiones
+        $this->call(InvestmentSeeder::class);
     }
 }
